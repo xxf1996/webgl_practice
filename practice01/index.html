@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>1. basic shader</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="test"></canvas>
+  <script type="shader-source" id="vertex">
+    void main() {
+      gl_Position = vec4(0.0, 0.0, 0.0, 1.0);
+      gl_PointSize = 10.0;
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    void main() {
+      gl_FragColor = vec4(0.0, 0.0, 1.0, 1.0);
+    }
+  </script>
+  <script>
+    const test = document.getElementById('test')
+    test.width = window.innerWidth
+    test.height = window.innerHeight
+    const gl = test.getContext('webgl') || test.getContext("experimental-webgl") // 创建webgl
+    const vertexSource = document.getElementById('vertex').innerHTML // 获取着色器源码
+    const fragSource = document.getElementById('fragment').innerHTML
+    const vertexShader = gl.createShader(gl.VERTEX_SHADER) // 创建着色器
+    const fragShader = gl.createShader(gl.FRAGMENT_SHADER)
+    const program = gl.createProgram() // 创建着色器程序
+    gl.shaderSource(vertexShader, vertexSource) // 为着色器写入源码
+    gl.shaderSource(fragShader, fragSource)
+    gl.compileShader(vertexShader) // 编译着色器
+    gl.compileShader(fragShader)
+    gl.attachShader(program, vertexShader) // 将着色器挂载到着色器程序上
+    gl.attachShader(program, fragShader)
+    gl.linkProgram(program) // 链接着色器程序
+    gl.useProgram(program) // 使用着色器程序
+    gl.clearColor(0.0, 0.0, 0.0, 1.0) // 设置画布清除颜色
+    gl.clear(gl.COLOR_BUFFER_BIT) // 清除画布
+    gl.drawArrays(gl.POINTS, 0, 1) // 绘制点
+  </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>2. basic shader + click interactive</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="test"></canvas>
+  <script type="shader-source" id="vertex">
+    precision mediump float; // 设置浮点精度为中等
+    attribute vec2 a_Pos; // 接收鼠标点击位置
+    attribute vec2 a_Size; // 接收canvas尺寸
+    void main() {
+      vec2 position = (a_Pos / a_Size) * 2.0 - 1.0; // 将canvas坐标转为裁剪坐标（[-1, 1]之间）
+      position = position * vec2(1.0, -1.0); // 为啥y坐标要乘-1？
+      gl_Position = vec4(position, 0, 1); // 点元坐标
+      gl_PointSize = 10.0; // 点元大小
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    precision mediump float;
+    uniform vec4 u_Color; // 接收绘制的颜色
+    void main() {
+      // vec4 color = u_Color / vec4(255, 255, 255, 1); // 将颜色值由[0, 255]转为[0, 1]
+      gl_FragColor = u_Color; // 设置片元（像素）的颜色
+    }
+  </script>
+  <script src="./index.js"></script>
+</body>
+</html>
