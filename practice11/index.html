@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>11. light</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+  <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <script src="https://cdn.bootcss.com/dat-gui/0.7.6/dat.gui.min.js"></script>
+  <script src="./createObject.js"></script>
+</head>
+<body>
+  <canvas id="test"></canvas>
+  <script type="shader-source" id="vertex">
+    precision mediump float; // 中等精度
+    attribute vec3 a_Pos; // 点坐标
+    attribute vec4 a_Color; // 点对应的颜色
+    varying vec4 v_Color; // 传递至片元着色器的颜色值
+    uniform mat4 u_Matrix;
+    void main() {
+      gl_Position = u_Matrix * vec4(a_Pos, 1); // 点坐标
+      v_Color = a_Color;
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    precision mediump float; // 中等精度
+    varying vec4 v_Color; // 接收顶点着色器传过来的颜色值
+    uniform vec3 u_Light;
+    uniform float u_AmbientFactor;
+    void main() {
+      gl_FragColor = vec4(u_Light * u_AmbientFactor, 1.0) * v_Color; // 片元颜色
+    }
+  </script>
+  <script src="./index.js"></script>
+</body>
+</html>
