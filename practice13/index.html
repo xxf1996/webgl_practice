@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>11. ambient light</title>
+  <title>13. point light</title>
   <style>
     html,
     body {
@@ -24,21 +24,35 @@
   <script type="shader-source" id="vertex">
     precision mediump float; // 中等精度
     attribute vec3 a_Pos; // 点坐标
+    attribute vec3 a_Normal; // 法向量
     attribute vec4 a_Color; // 点对应的颜色
     varying vec4 v_Color; // 传递至片元着色器的颜色值
-    uniform mat4 u_Matrix;
+    varying vec3 v_Normal; // 法向量插值
+    varying vec3 v_Pos;
+    uniform mat4 u_Matrix; // 模型视图投影矩阵
+    uniform mat4 u_ModelMatrix; // 模型矩阵
     void main() {
       gl_Position = u_Matrix * vec4(a_Pos, 1); // 点坐标
       v_Color = a_Color;
+      v_Normal = mat3(u_ModelMatrix) * a_Normal; // 法向量跟随变换
+      v_Pos = vec3(u_ModelMatrix * vec4(a_Pos, 1)); // 注意：一定要用模型矩阵变换坐标，用mvp矩阵得到的是投影坐标系中的坐标！
     }
   </script>
   <script type="shader-source" id="fragment">
     precision mediump float; // 中等精度
     varying vec4 v_Color; // 接收顶点着色器传过来的颜色值
-    uniform vec3 u_Light;
-    uniform float u_AmbientFactor;
+    varying vec3 v_Normal;
+    varying vec3 v_Pos;
+    uniform vec3 u_LightColor; // 光源颜色
+    uniform vec3 u_LightPos; // 光源位置
+    uniform float u_AmbientFactor; // 环境光因子
     void main() {
-      gl_FragColor = vec4(u_Light * u_AmbientFactor, 1.0) * v_Color; // 片元颜色
+      vec3 direction = u_LightPos - v_Pos;
+      float diffuseFactor = dot(normalize(direction), normalize(v_Normal)); // 由光线入射方向和法向量计算漫反射因子（即漫反射强度）
+      diffuseFactor = max(diffuseFactor, 0.0);
+      vec3 diffuseColor = u_LightColor * diffuseFactor; // 漫反射光
+      vec3 ambientColor = vec3(1.0, 1.0, 1.0) * u_AmbientFactor; // 环境光
+      gl_FragColor = vec4(diffuseColor + ambientColor, 1.0) * v_Color; // 片元颜色
     }
   </script>
   <script src="./index.js"></script>
