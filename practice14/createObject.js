@@ -105,6 +105,9 @@
       case '1f':
         ctx.uniform1f(info.pos, info.value)
         break
+      case '1i':
+        ctx.uniform1i(info.pos, info.value)
+        break
       case '3fv':
         ctx.uniform3fv(info.pos, info.value)
         break
