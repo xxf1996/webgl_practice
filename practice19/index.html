@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>19. skybox</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+  <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <script src="https://cdn.bootcss.com/dat-gui/0.7.6/dat.gui.min.js"></script>
+  <script src="./createObject.js"></script>
+</head>
+<body>
+  <canvas id="test" tabindex="1"></canvas>
+  <script type="shader-source" id="vertex">
+    precision mediump float; // 中等精度
+    attribute vec3 a_Pos; // 点坐标
+    attribute vec3 a_Normal; // 法向量
+    varying vec3 v_Normal; // 法向量插值
+    varying vec3 v_Pos; // 坐标插值
+    uniform mat4 u_Matrix;
+    uniform mat4 u_ModelMatrix; // 模型矩阵
+    void main() {
+      gl_Position = u_Matrix * vec4(a_Pos, 1); // 点坐标
+      v_Normal = mat3(u_ModelMatrix) * a_Normal; // 法向量跟随变换
+      v_Pos = mat3(u_ModelMatrix) * a_Pos;
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    precision mediump float; // 中等精度
+    varying vec3 v_Normal;
+    varying vec3 v_Pos; // 坐标插值
+    uniform vec3 u_LightColor; // 光源颜色
+    uniform vec3 u_LightPos; // 平行光方向（入射方向）
+    uniform float u_AmbientFactor; // 环境光因子
+    uniform vec3 u_Eye; // 眼睛位置
+    uniform float u_Shininess; // 反光度（一般为2的n次幂）；目前webgl还不支持int类型的属性？
+    uniform samplerCube u_Box; // cube类型的纹理
+    void main() {
+      vec3 lightDirection = normalize(u_LightPos - v_Pos); // 光线方向（指向光源位置）
+      float diffuseFactor = dot(normalize(lightDirection), normalize(v_Normal)); // 由光线方向和法向量计算漫反射因子（即漫反射强度）
+      diffuseFactor = max(diffuseFactor, 0.0);
+      // vec3 reflectDirection = reflect(normalize(-lightDirection), normalize(v_Normal)); // 光线反射方向
+      // reflectDirection = normalize(reflectDirection);
+      vec3 viewDirection = normalize(u_Eye - v_Pos); // 人眼观察方向（指向眼睛）
+      vec3 halfVector = normalize(lightDirection + viewDirection); // 半程向量（反射光方法与观察方向中间方向）
+      float specularFactor = 0.0;
+      if (diffuseFactor > 0.0) { // 判断是否有反射光
+        specularFactor = dot(halfVector, normalize(v_Normal)); // 计算镜面反射因子
+        specularFactor = max(specularFactor, 0.0);
+        specularFactor = pow(specularFactor, u_Shininess); // 加入反光度
+      }
+      vec3 diffuseColor = u_LightColor * diffuseFactor; // 漫反射光
+      vec3 ambientColor = vec3(1.0, 1.0, 1.0) * u_AmbientFactor; // 环境光
+      vec3 specularColor = u_LightColor * specularFactor; // 镜面高光
+      vec4 samplerColor = textureCube(u_Box, vec3(-v_Pos.x, v_Pos.y, v_Pos.z)); // 直接使用顶点坐标作为立体纹理的采样坐标
+      gl_FragColor = vec4(diffuseColor + ambientColor + specularColor, 1.0) * samplerColor; // 片元颜色
+    }
+  </script>
+  <script src="./index.js"></script>
+</body>
+</html>
