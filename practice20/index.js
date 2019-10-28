@@ -10,8 +10,9 @@ let view = mat4.create()
 let objects = []
 let startX = 0
 let startY = 0
-let curEye = vec3.fromValues(0, 0, 100)
-let look = vec3.fromValues(0, 0, 0)
+let curEye = vec3.fromValues(0, 0, 0)
+let nextLook = vec3.create()
+let curLook = vec3.fromValues(0, 0, -5)
 const objectNum = 50
 let guiInfo = {
   light: [255, 255, 255],
@@ -24,9 +25,9 @@ let guiInfo = {
   eyeY: curEye[1],
   eyeZ: curEye[2]
 }
+let boxes = []
 let gui = new dat.GUI()
 let lightSetting = gui.addFolder('光源设置')
-let eyeSetting = gui.addFolder('眼睛设置')
 // 立方体纹理图片
 let imageList = [
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACABAMAAAAxEHz4AAAAG1BMVEVm/2YzMzM5TDlMmUxZzFlSslI/Zj9f5V9Gf0bUAvFXAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAA7klEQVRoge3UMW/CMBCG4UuME0afkxKPMRI7YekaunSu1H9QIVbE1JFO/ds9gkDKaJ/Uhe9ZMt2rS5yECAAAAAAAAOBZlW5+VQaKPjlgt8rAfJN/DxT98ObIxEuUwG41GuZTWmDDEvjhIIGGubXRJwbi4ewW/v2DqeTX7yArJc1TEWT15QsZCQQinx7oJFA5qiXQEsX0QC+BUoYk0GUHrkNxOsbcDZwyUHXTLeQHTENWFah53KsCNLC/P4My9VWeAjYe7wG7Tgs8+LyxG/tL9UoTMPItBE2g9p9DqwnI/4AvqsAyfqnmAQAAAAAg3x/wFBVoCZ9KrwAAAABJRU5ErkJggg==', // right
@@ -36,20 +37,11 @@ let imageList = [
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACABAMAAAAxEHz4AAAAG1BMVEX/ZmYzMzPlX19mPz9/RkbMWVlMOTmZTEyyUlI84PcGAAAACXBIWXMAAA7EAAAOxAGVKw4bAAAAyklEQVRoge3TMQ6CMBTG8dcYC6OPlrrW6AFkc/QI9QY0UeOKA7s3t2AntraG6fsNTSDhH2gfRAAAAAAAAADrO+rCQLcMiD4twK4wYJY31g4MrEU/uG2nLMndqFzFbFMCI9/Fi92H+UFSq66tvUkKhE8Q/mL9+2RIGlurjD0Qmqp9OE8n9/NleqChTUN0u8qw+pxAH7aP6HCe1szA9JAoCRS/QdyD/ECl51PID9BvDgoCYRLbGJBpoxwD8V+YAvUzLQAAAAAAAAD/8AW/eh6dq5vsowAAAABJRU5ErkJggg==', // front
   'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACABAMAAAAxEHz4AAAAG1BMVEVmZv8zMzNfX+VZWcw/P2Y5OUxGRn9MTJlSUrLHtzR7AAAACXBIWXMAAA7EAAAOxAGVKw4bAAABY0lEQVRoge2TsW7CMBCGD4cCIxdIwugMdCaVuuOlrHFUhbVRValjIvEAIHXgsfvbYeh4DB2q3jdwtsV9vthnIkVRFEVRFEVRFOUvYVi6qILfFCSutRh8+UMIC/d6joI5n4WCirkh2nIM1DEXUXDJpRX4F7dGYn7t1mHf9oN3ECS8lwoKWvCOfI9AVOZk/B6CbWalAuzk3ogthpaGGsUvIXCpLB9ZZ6TUdKUocD2OozE8Q1FSAf5ZLsPwEYIxz/CwFubHbalMyZw8s42zsMh3VICfSUoX5jYIbouZ9BJuFSwTPj7RjwqaYXWPoKqnoW3CGWCWoA9sKT2EeAvD/mE1ujxmVYovmUsPYeyDfrIKXWipw2yoITDyTtyEzPAJFQRVgSbuw1l2G6nAH1wOx+cp8+805UOXxcsoM6kArxH9iy5o8KgM4ibe7Uz8nBf+iDj3rX0uxhgFJmgVRVEURVEURVH+E98DMDCOcYPooAAAAABJRU5ErkJggg==' // back
 ]
-
-let skybox = [
-  'pos-x.jpg',
-  'neg-x.jpg',
-  'pos-y.jpg',
-  'neg-y.jpg',
-  'pos-z.jpg',
-  'neg-z.jpg'
-]
 // mat4.ortho(projection, -8 * aspect, 8 * aspect, -8, 8, 30, -30)
 mat4.lookAt(
   view,
   curEye, // 眼睛位置
-  look, // 目标位置
+  curLook, // 目标位置
   vec3.fromValues(0, 1, 0) // 眼睛顶部向量
 ) // 视图矩阵
 mat4.perspective(projection, 1, aspect, 1, 1000) // 透视投影矩阵
@@ -59,103 +51,95 @@ lightSetting
   .name('光源颜色')
   .onFinishChange(() => {
     let color = toColor(guiInfo.light) // 转化颜色值
-    box.updateUniform('u_LightColor', color)
+    boxes.forEach(box => {
+      box.updateUniform('u_LightColor', color)
+    })
     lightBox.updateUniform('u_Color', color)
   })
 lightSetting
-  .add(guiInfo, 'lightX', -1000, 1000, 1)
+  .add(guiInfo, 'lightX', -100, 100, 1)
   .name('点光源坐标X')
   .onFinishChange(() => {
     updatePos()
   })
 lightSetting
-  .add(guiInfo, 'lightY', -1000, 1000, 1)
+  .add(guiInfo, 'lightY', -100, 100, 1)
   .name('点光源坐标Y')
   .onFinishChange(() => {
     updatePos()
   })
 lightSetting
-  .add(guiInfo, 'lightZ', -1000, 1000, 1)
+  .add(guiInfo, 'lightZ', -100, 100, 1)
   .name('点光源坐标Z')
   .onFinishChange(() => {
     updatePos()
-  })
-eyeSetting
-  .add(guiInfo, 'eyeX', -1000, 1000, 1)
-  .name('眼睛坐标X')
-  .onFinishChange(() => {
-    updateEye()
-  })
-eyeSetting
-  .add(guiInfo, 'eyeY', -1000, 1000, 1)
-  .name('眼睛坐标Y')
-  .onFinishChange(() => {
-    updateEye()
-  })
-eyeSetting
-  .add(guiInfo, 'eyeZ', -1000, 1000, 1)
-  .name('眼睛坐标Z')
-  .onFinishChange(() => {
-    updateEye()
   })
 gui
   .add(guiInfo, 'shininess', 1, 256, 1)
   .name('反光度')
   .onFinishChange(() => {
-    box.updateUniform('u_Shininess', guiInfo.shininess)
+    boxes.forEach(box => {
+      box.updateUniform('u_Shininess', guiInfo.shininess)
+    })
   })
 gui
   .add(guiInfo, 'factor', 0, 1, 0.01)
   .name('环境光因子')
   .onFinishChange(() => {
-    box.updateUniform('u_AmbientFactor', guiInfo.factor)
+    boxes.forEach(box => {
+      box.updateUniform('u_AmbientFactor', guiInfo.factor)
+    })
   })
 
-// 天空盒
-let box = new Cube(gl, {
-  projection: projection,
-  view: view,
-  vertexSource: vertexSource,
-  fragSource: fragSource,
-  origin: [0, 0, 0],
-  length: 200,
-  uniform: {
-    'u_Matrix': {
-      type: 'm4fv'
-    },
-    'u_ModelMatrix': {
-      type: 'm4fv'
-    },
-    'u_LightColor': {
-      type: '3fv',
-      value: toColor(guiInfo.light)
-    },
-    'u_AmbientFactor': {
-      type: '1f',
-      value: guiInfo.factor
-    },
-    'u_Shininess': {
-      type: '1f',
-      value: guiInfo.shininess
-    },
-    'u_LightPos': {
-      type: '3fv',
-      value: new Float32Array([
-        guiInfo.lightX,
-        guiInfo.lightY,
-        guiInfo.lightZ
-      ])
-    },
-    'u_Eye': {
-      type: '3fv',
-      value: new Float32Array([
-        guiInfo.eyeX,
-        guiInfo.eyeY,
-        guiInfo.eyeZ
-      ])
+// 高光反射方块
+for (let i = 0; i < 1; i++) {
+  let box = new Cube(gl, {
+    projection: projection,
+    view: view,
+    vertexSource: vertexSource,
+    fragSource: fragSource,
+    origin: [
+      Math.random() * 10 - 5,
+      Math.random() * 10 - 5,
+      Math.random() * 10 - 5
+    ],
+    length: 2,
+    uniform: {
+      'u_Matrix': {
+        type: 'm4fv'
+      },
+      'u_ModelMatrix': {
+        type: 'm4fv'
+      },
+      'u_LightColor': {
+        type: '3fv',
+        value: toColor(guiInfo.light)
+      },
+      'u_AmbientFactor': {
+        type: '1f',
+        value: guiInfo.factor
+      },
+      'u_Shininess': {
+        type: '1f',
+        value: guiInfo.shininess
+      },
+      'u_LightPos': {
+        type: '3fv',
+        value: new Float32Array([
+          guiInfo.lightX,
+          guiInfo.lightY,
+          guiInfo.lightZ
+        ])
+      },
+      'u_Eye': {
+        type: '3fv',
+        value: curEye
+      }
     }
-  }
-})
+  })
+
+  boxes.push(box)
+}
 
 // 灯源方块
 let lightBox = new Cube(gl, {
@@ -166,7 +150,7 @@ let lightBox = new Cube(gl, {
     guiInfo.lightY,
     guiInfo.lightZ
   ],
-  length: 2,
+  length: 0.5,
   uniform: {
     'u_Matrix': {
       type: 'm4fv'
@@ -178,20 +162,18 @@ let lightBox = new Cube(gl, {
   }
 })
 
-gl.enable(gl.CULL_FACE) // 开启剔除
+gl.enable(gl.CULL_FACE) // 隐藏背面
 gl.enable(gl.DEPTH_TEST) // 开启深度测试
-gl.cullFace(gl.FRONT) // 剔除正面
 gl.depthFunc(gl.LEQUAL) // 指定深度测试函数
 gl.clearColor(0.0, 0.0, 0.0, 1.0) // 设置画布清除颜色
 
 function loop () {
   gl.clear(gl.COLOR_BUFFER_BIT) // 清除画布
-  // box.rotate(1, 1, 1)
-  // guiInfo.eyeX = (guiInfo.eyeX + 1) % 60
-  // updateEye()
-  box.updateMatrix()
-  box.updateModel()
-  box.draw()
+  boxes.forEach(box => {
+    box.updateMatrix()
+    box.updateModel()
+    box.draw()
+  })
   lightBox.updateMatrix()
   lightBox.draw()
   requestAnimationFrame(loop)
@@ -215,58 +197,65 @@ function updatePos () {
   ])
   lightBox.moveOrigin(pos) // 移动光源位置
   lightBox.updateMatrix()
-  box.updateUniform('u_LightPos', pos)
+  boxes.forEach(box => {
+    box.updateUniform('u_LightPos', pos)
+  })
 }
 
-// 更新眼睛位置
-function updateEye (fromGUI = true) {
-  let eye = vec3.fromValues(
-    guiInfo.eyeX,
-    guiInfo.eyeY,
-    guiInfo.eyeZ
-  )
+// 更新眼睛落点位置
+function updateLook () {
   // 更新视图矩阵
   mat4.lookAt(
     view,
-    eye,
-    look,
+    curEye,
+    nextLook,
     vec3.fromValues(0, 1, 0)
   )
-  box.viewMatrix = view
-  box.updateUniform('u_Eye', eye)
-  if (!fromGUI) { // 当不是gui自身改变属性值，需要手动更新gui视图
-    gui.updateDisplay()
-  } else { // 通过gui改变眼睛位置时，同步信息
-    curEye = eye
-  }
-  // debugger
+  boxes.forEach(box => {
+    box.viewMatrix = view
+  })
+  // box.updateUniform('u_Eye', eye)
 }
 
-// 屏幕拖拽移动时，改变眼睛位置（围绕观察点旋转）
+
+function updateEye () {
+  boxes.forEach(box => {
+    box.updateUniform('u_Eye', curEye)
+  })
+}
+
+// 屏幕拖拽移动时，改变眼睛落点位置（围绕观察点旋转）
 function drag (e) {
   let deltaX = e.clientX - startX
   let deltaY = e.clientY - startY
   let angleX = deltaX / test.width * Math.PI * 2 // X方向绕Y轴旋转
-  let angleY= deltaY / test.height * Math.PI * 2 // Y方向绕X轴旋转
-  let nextEye = vec3.create()
-  vec3.rotateY(nextEye, curEye, vec3.create(), angleX)
+  let angleY = deltaY / test.height * Math.PI * 2 // Y方向绕X轴旋转
+  vec3.rotateY(nextLook, curLook, curEye, angleX)
   // vec3.rotateX(nextEye, nextEye, vec3.create(), angleY)
-  guiInfo.eyeX = nextEye[0]
-  guiInfo.eyeY = nextEye[1]
-  guiInfo.eyeZ = nextEye[2]
-  updateEye(false)
+  updateLook()
 }
 
-// 通过上下控制眼睛的z坐标
 function move (e) {
   if (e.key === 'w') {
-    guiInfo.eyeZ = guiInfo.eyeZ - 2
-    updateEye(false)
+    let viewDirection = vec3.create()
+    vec3.sub(viewDirection, curLook, curEye)
+    vec3.normalize(viewDirection, viewDirection)
+    vec3.scale(viewDirection, viewDirection, 0.5)
+    vec3.add(curEye, curEye, viewDirection)
+    vec3.add(curLook, curLook, viewDirection)
+    updateEye()
+    updateLook()
   }
 
   if (e.key === 's') {
-    guiInfo.eyeZ = guiInfo.eyeZ + 2
-    updateEye(false)
+    let viewDirection = vec3.create()
+    vec3.sub(viewDirection, curLook, curEye)
+    vec3.normalize(viewDirection, viewDirection)
+    vec3.scale(viewDirection, viewDirection, -0.5)
+    vec3.add(curEye, curEye, viewDirection)
+    vec3.add(curLook, curLook, viewDirection)
+    updateEye()
+    updateLook()
   }
 
   // console.log(e.key)
@@ -275,14 +264,16 @@ function move (e) {
 // 加载纹理图片
 function loadImages () {
   let i = 0
-  let skyList = []
-  skybox.forEach(url => {
+  let loadList = []
+  imageList.forEach(url => {
     let img = new Image()
-    skyList.push(img)
     img.onload = () => {
       i++
+      loadList.push(img)
       if (i === 6) { // 所有纹理图片加载完后进行绘制
-        box.initTexture(skyList)
+        boxes.forEach(box => {
+          box.initTexture(loadList)
+        })
         loop()
       }
     }
@@ -291,23 +282,15 @@ function loadImages () {
 }
 
 test.addEventListener('mousedown', e => {
-  curEye = vec3.fromValues(
-    guiInfo.eyeX,
-    guiInfo.eyeY,
-    guiInfo.eyeZ
-  )
   startX = e.clientX
   startY = e.clientY
+  vec3.copy(nextLook, curLook)
   test.addEventListener('mousemove', drag)
 })
 
 test.addEventListener('mouseup', () => {
   test.removeEventListener('mousemove', drag)
-  curEye = vec3.fromValues(
-    guiInfo.eyeX,
-    guiInfo.eyeY,
-    guiInfo.eyeZ
-  )
+  vec3.copy(curLook, nextLook)
 })
 
 test.addEventListener('keypress', move)
