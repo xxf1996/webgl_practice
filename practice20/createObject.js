@@ -343,6 +343,7 @@
         pos[2] - this._ORIGIN[2]
       ]
       this.translate(delta[0], delta[1], delta[2]) // 相对位移
+      // console.log(delta)
       // this._ORIGIN = pos.slice(0)
     }
 

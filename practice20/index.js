@@ -13,7 +13,9 @@ let startY = 0
 let curEye = vec3.fromValues(0, 0, 0)
 let nextLook = vec3.create()
 let curLook = vec3.fromValues(0, 0, -5)
-const objectNum = 50
+vec3.copy(nextLook, curLook)
+const objectNum = 10
+const moveStep = 0.1
 let guiInfo = {
   light: [255, 255, 255],
   factor: 0.2,
@@ -92,18 +94,18 @@ gui
   })
 
 // 高光反射方块
-for (let i = 0; i < 1; i++) {
+for (let i = 0; i < 10; i++) {
   let box = new Cube(gl, {
     projection: projection,
     view: view,
     vertexSource: vertexSource,
     fragSource: fragSource,
     origin: [
-      Math.random() * 10 - 5,
-      Math.random() * 10 - 5,
-      Math.random() * 10 - 5
+      0,
+      0,
+      0
     ],
-    length: 2,
+    length: 1,
     uniform: {
       'u_Matrix': {
         type: 'm4fv'
@@ -134,9 +136,16 @@ for (let i = 0; i < 1; i++) {
       'u_Eye': {
         type: '3fv',
         value: curEye
+      },
+      'u_ViewDirection': {
+        type: '3fv',
+        value: getViewDirection()
       }
     }
   })
+
+  box.rotate(Math.random() * 180 - 90, Math.random() * 180 - 90, Math.random() * 180 - 90)
+  box.translate(Math.random() * 10 - 5, Math.random() * 10 - 5, Math.random() * 10 - 5)
 
   boxes.push(box)
 }
@@ -162,7 +171,24 @@ let lightBox = new Cube(gl, {
   }
 })
 
-gl.enable(gl.CULL_FACE) // 隐藏背面
+// 眼睛观察落点
+let lookPoint = new Cube(gl, {
+  projection: projection,
+  view: view,
+  origin: curLook.slice(0),
+  length: 0.1,
+  uniform: {
+    'u_Matrix': {
+      type: 'm4fv'
+    },
+    'u_Color': {
+      type: '3fv',
+      value: toColor([120, 120, 255])
+    }
+  }
+})
+
+gl.enable(gl.CULL_FACE) // 开启剔除
 gl.enable(gl.DEPTH_TEST) // 开启深度测试
 gl.depthFunc(gl.LEQUAL) // 指定深度测试函数
 gl.clearColor(0.0, 0.0, 0.0, 1.0) // 设置画布清除颜色
@@ -176,6 +202,8 @@ function loop () {
   })
   lightBox.updateMatrix()
   lightBox.draw()
+  lookPoint.updateMatrix()
+  lookPoint.draw()
   requestAnimationFrame(loop)
 }
 
@@ -186,6 +214,23 @@ function toColor (arr) {
     arr[1] / 255,
     arr[2] / 255
   ])
+}
+
+// 获取当前观察方向的单位方向（指向眼睛）
+function getViewDirection () {
+  let direction = vec3.create()
+  vec3.sub(direction, curEye, nextLook)
+  vec3.normalize(direction, direction)
+
+  return direction
+}
+
+// 更新观察方向
+function updateView () {
+  let direction = getViewDirection()
+  boxes.forEach(box => {
+    box.updateUniform('u_ViewDirection', direction)
+  })
 }
 
 // 更新光源位置
@@ -211,6 +256,8 @@ function updateLook () {
     nextLook,
     vec3.fromValues(0, 1, 0)
   )
+  lookPoint.moveOrigin(nextLook)
+  lookPoint.updateMatrix()
   boxes.forEach(box => {
     box.viewMatrix = view
   })
@@ -232,28 +279,32 @@ function drag (e) {
   let angleY = deltaY / test.height * Math.PI * 2 // Y方向绕X轴旋转
   vec3.rotateY(nextLook, curLook, curEye, angleX)
   // vec3.rotateX(nextEye, nextEye, vec3.create(), angleY)
+  updateView()
   updateLook()
 }
 
+// 键盘控制眼睛移动
 function move (e) {
-  if (e.key === 'w') {
+  if (e.key === 'w') { // 前进
     let viewDirection = vec3.create()
     vec3.sub(viewDirection, curLook, curEye)
     vec3.normalize(viewDirection, viewDirection)
-    vec3.scale(viewDirection, viewDirection, 0.5)
+    vec3.scale(viewDirection, viewDirection, moveStep)
     vec3.add(curEye, curEye, viewDirection)
     vec3.add(curLook, curLook, viewDirection)
+    vec3.copy(nextLook, curLook)
     updateEye()
     updateLook()
   }
 
-  if (e.key === 's') {
+  if (e.key === 's') { // 后退
     let viewDirection = vec3.create()
     vec3.sub(viewDirection, curLook, curEye)
     vec3.normalize(viewDirection, viewDirection)
-    vec3.scale(viewDirection, viewDirection, -0.5)
+    vec3.scale(viewDirection, viewDirection, -moveStep)
     vec3.add(curEye, curEye, viewDirection)
     vec3.add(curLook, curLook, viewDirection)
+    vec3.copy(nextLook, curLook)
     updateEye()
     updateLook()
   }
