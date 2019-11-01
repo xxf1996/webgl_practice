@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>22. Random Test</title>
+  <title>23. 1D Noise Test</title>
   <style>
     html,
     body {
@@ -22,7 +22,6 @@
   <canvas id="test" tabindex="1"></canvas>
   <script type="shader-source" id="vertex">
     precision mediump float; // 中等精度
-    attribute vec2 a_Screen; // 屏幕大小
     attribute vec3 a_Pos; // 点坐标
     varying vec3 v_Pos; // 插值点坐标
     void main() {
@@ -34,27 +33,20 @@
     precision mediump float; // 中等精度
     uniform float u_Time; // 当前时间戳
     uniform vec2 u_Mouse; // 当前鼠标坐标
+    uniform vec2 u_Screen; // 窗口大小
     varying vec3 v_Pos; // 插值点坐标
 
-    // 2d伪随机数
-    float random (vec2 st) {
-      return fract(sin(dot(st, vec2(12.3912, 10.7346))) * 42394.11);
-    }
-
-    float checkRange (float start, float end, float val) {
-      return val > end ? start + val - end : val;
+    // 伪随机数
+    float rand (float n) {
+      return fract(sin(n * 1.7162) * 8723.6421);
     }
 
     void main() {
-      vec2 count = vec2(80.0, 30.0);
-      vec2 pos = vec2(checkRange(-1.0, 1.0, v_Pos.x - u_Time / 40.0), v_Pos.y) * count;
-      vec2 ipos = floor(pos);
-      vec2 fpos = fract(pos);
-      // float y = sin(100.0 * rnd * v_Pos.x + u_Time * rnd) / count;
-      vec3 color = vec3(1.0, 1.0, 1.0);
-      if (step(0.2, fpos.y) == 1.0) {
-        color *= step(0.3, random(ipos));
-      }
+      float ix = floor(v_Pos.x * 10.0);
+      float fx = fract(v_Pos.x * 10.0);
+      float y = mix(rand(ix), rand(ix + 1.0), fx) * 0.5;
+      vec3 color = vec3(1.0);
+      color *= abs(v_Pos.y - y) < 0.002 ? 0.0 : 1.0;
       gl_FragColor = vec4(color, 1.0); // 片元颜色
     }
   </script>

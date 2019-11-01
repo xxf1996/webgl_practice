@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>22. Random Test</title>
+  <title>24. 2D Noise Test</title>
   <style>
     html,
     body {
@@ -22,7 +22,6 @@
   <canvas id="test" tabindex="1"></canvas>
   <script type="shader-source" id="vertex">
     precision mediump float; // 中等精度
-    attribute vec2 a_Screen; // 屏幕大小
     attribute vec3 a_Pos; // 点坐标
     varying vec3 v_Pos; // 插值点坐标
     void main() {
@@ -34,27 +33,33 @@
     precision mediump float; // 中等精度
     uniform float u_Time; // 当前时间戳
     uniform vec2 u_Mouse; // 当前鼠标坐标
+    uniform vec2 u_Screen; // 窗口大小
     varying vec3 v_Pos; // 插值点坐标
 
     // 2d伪随机数
     float random (vec2 st) {
-      return fract(sin(dot(st, vec2(12.3912, 10.7346))) * 42394.11);
+      return fract(sin(dot(st, vec2(12.3912, 18.83653))) * 73134.41);
     }
 
-    float checkRange (float start, float end, float val) {
-      return val > end ? start + val - end : val;
+    float noise (vec2 p) {
+      vec2 ipos = floor(p);
+      vec2 fpos = fract(p);
+
+      float a = random(ipos);
+      float b = random(ipos + vec2(1.0, 0.0));
+      float c = random(ipos + vec2(0.0, 1.0));
+      float d = random(ipos + vec2(1.0, 1.0));
+      vec2 u = fpos * fpos * (3.0 - 2.0 * fpos);
+
+      return mix(a, b, u.x) + (c - a) * u.y * (1.0 - u.x) + (d - b) * u.x * u.y;
     }
 
     void main() {
-      vec2 count = vec2(80.0, 30.0);
-      vec2 pos = vec2(checkRange(-1.0, 1.0, v_Pos.x - u_Time / 40.0), v_Pos.y) * count;
-      vec2 ipos = floor(pos);
-      vec2 fpos = fract(pos);
-      // float y = sin(100.0 * rnd * v_Pos.x + u_Time * rnd) / count;
-      vec3 color = vec3(1.0, 1.0, 1.0);
-      if (step(0.2, fpos.y) == 1.0) {
-        color *= step(0.3, random(ipos));
-      }
+      float count = 2.0;
+      float k = noise(v_Pos.xy * count);
+      // float k = random(floor(v_Pos.xy * count));
+      vec3 color = vec3(1.0);
+      color *= k;
       gl_FragColor = vec4(color, 1.0); // 片元颜色
     }
   </script>
