@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>25. Rotate Line(dizziness)</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+  <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <script src="./initProgram.js"></script>
+</head>
+<body>
+  <canvas id="test" tabindex="1"></canvas>
+  <script type="shader-source" id="vertex">
+    precision mediump float; // 中等精度
+    attribute vec3 a_Pos; // 点坐标
+    varying vec3 v_Pos; // 插值点坐标
+    void main() {
+      gl_Position = vec4(a_Pos * vec3(1.0, -1.0, 1.0), 1.0); // 点坐标（屏幕坐标的y坐标轴是由下往上的）
+      v_Pos = a_Pos;
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    precision mediump float; // 中等精度
+    uniform float u_Time; // 当前时间戳
+    uniform vec2 u_Mouse; // 当前鼠标坐标
+    uniform vec2 u_Screen; // 窗口大小
+    varying vec3 v_Pos; // 插值点坐标
+
+    // 画出平滑的直线
+    float lines (vec2 pos) {
+      float scale = 10.0;
+      vec2 p = pos * scale;
+      return smoothstep(0.0, 1.0, abs(sin(3.1415926 * p.y + u_Time / 100.0)));
+    }
+
+    // 2维旋转矩阵
+    mat2 rotate (float angle) {
+      return mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+    }
+
+    void main() {
+      vec3 color = vec3(lines(rotate(0.2 + u_Time / 1000.0) * v_Pos.xy));
+      gl_FragColor = vec4(color, 1.0); // 片元颜色
+    }
+  </script>
+  <script>
+    let demo = new Program({
+      needScreen: true,
+      needMouse: true,
+      updateTime: true,
+      loop: true
+    })
+    demo.start()
+  </script>
+</body>
+</html>

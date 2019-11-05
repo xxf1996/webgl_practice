@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>26. Rotate Line of Perlin Noise</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+  <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <script src="./initProgram.js"></script>
+</head>
+<body>
+  <canvas id="test" tabindex="1"></canvas>
+  <script type="shader-source" id="vertex">
+    precision mediump float; // 中等精度
+    attribute vec3 a_Pos; // 点坐标
+    varying vec3 v_Pos; // 插值点坐标
+    void main() {
+      gl_Position = vec4(a_Pos * vec3(1.0, -1.0, 1.0), 1.0); // 点坐标（屏幕坐标的y坐标轴是由下往上的）
+      v_Pos = a_Pos;
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    precision mediump float; // 中等精度
+    uniform float u_Time; // 当前时间戳
+    uniform vec2 u_Mouse; // 当前鼠标坐标
+    uniform vec2 u_Screen; // 窗口大小
+    varying vec3 v_Pos; // 插值点坐标
+
+    // 2维伪随机数
+    vec2 random2d (vec2 st) {
+      vec2 pos = vec2(
+        dot(st, vec2(192.42, 83.91)),
+        dot(st, vec2(39.6, 89.27))
+      );
+
+      // [-1, 1]
+      return 2.0 * fract(sin(pos) * 54381.361) - 1.0;
+    }
+
+    // 画出平滑的直线
+    float lines (vec2 pos) {
+      float scale = 10.0;
+      vec2 p = pos * scale;
+      return smoothstep(0.0, 1.0, abs(sin(3.1415926 * p.y + u_Time / 100.0)));
+    }
+
+    // 2维旋转矩阵
+    mat2 rotate (float angle) {
+      return mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
+    }
+
+    // 2维perlin噪声
+    float noise (vec2 p) {
+      vec2 fpos = fract(p);
+      vec2 ipos = floor(p);
+      vec2 k = fpos * fpos * (3.0 - 2.0 * fpos);
+      float a = dot(random2d(ipos), fpos);
+      float b = dot(random2d(ipos + vec2(1.0, 0.0)), fpos - vec2(1.0, 0.0));
+      float c = dot(random2d(ipos + vec2(0.0, 1.0)), fpos - vec2(0.0, 1.0));
+      float d = dot(random2d(ipos + vec2(1.0, 1.0)), fpos - vec2(1.0, 1.0));
+      
+      return mix(
+        mix(a, b, k.x),
+        mix(c, d, k.x),
+        k.y
+      );
+    }
+
+    void main() {
+      vec2 pos = v_Pos.xy * vec2(5.0, 3.0);
+      vec3 color = vec3(lines(rotate(noise(pos)) * pos));
+      gl_FragColor = vec4(color, 1.0); // 片元颜色
+    }
+  </script>
+  <script>
+    let demo = new Program({
+      needScreen: true,
+      needMouse: true,
+      updateTime: true,
+      loop: true
+    })
+    demo.start()
+  </script>
+</body>
+</html>
