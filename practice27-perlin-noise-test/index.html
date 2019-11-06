@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>26. Rotate Line of Perlin Noise</title>
+  <title>26. Perlin Noise Test</title>
   <style>
     html,
     body {
@@ -30,6 +30,8 @@
     }
   </script>
   <script type="shader-source" id="fragment">
+    #define PI 3.1415926
+    #define CHANGE false
     precision mediump float; // 中等精度
     uniform float u_Time; // 当前时间戳
     uniform vec2 u_Mouse; // 当前鼠标坐标
@@ -47,11 +49,27 @@
       return 2.0 * fract(sin(pos) * 54381.361) - 1.0;
     }
 
-    // 画出平滑的直线
-    float lines (vec2 pos) {
+    vec2 cubeVal (vec2 p) {
+      return p * p * (3.0 - 2.0 * p);
+    }
+
+    vec2 lineVal (vec2 p) {
+      return p;
+    }
+
+    vec2 logVal (vec2 p) {
+      return log2(1.0 + p);
+    }
+
+    vec2 triVal (vec2 p) {
+      return abs(cos(PI * p));
+    }
+
+    // sin条纹
+    float lines (vec2 pos, bool isY) {
       float scale = 10.0;
       vec2 p = pos * scale;
-      return smoothstep(0.0, 1.0, abs(sin(3.1415926 * p.y + u_Time / 100.0)));
+      return smoothstep(0.0, 1.0, abs(sin(PI * (isY ? p.y : p.x) + (CHANGE ? u_Time / 100.0 : 0.0))));
     }
 
     // 2维旋转矩阵
@@ -63,7 +81,7 @@
     float noise (vec2 p) {
       vec2 fpos = fract(p); // 小数部分
       vec2 ipos = floor(p); // 整数部分
-      vec2 k = fpos * fpos * (3.0 - 2.0 * fpos); // 插值系数，实际上就是smoothstep所用的插值函数
+      vec2 k = cubeVal(fpos); // 插值系数
       float a = dot(random2d(ipos), fpos);
       float b = dot(random2d(ipos + vec2(1.0, 0.0)), fpos - vec2(1.0, 0.0));
       float c = dot(random2d(ipos + vec2(0.0, 1.0)), fpos - vec2(0.0, 1.0));
@@ -77,9 +95,10 @@
     }
 
     void main() {
-      vec2 pos = v_Pos.xy * vec2(5.0, 3.0);
-      vec3 color = vec3(lines(rotate(noise(pos)) * pos)); // 随机旋转加以扭曲
-      // vec3 color = vec3(lines(abs(rotate(noise(pos)) * pos - pos)));
+      vec2 pos = v_Pos.xy * vec2(3.0, 3.0);
+      pos += noise(pos) - 0.5;
+      // pos = rotate(0.2) * pos;
+      vec3 color = vec3(lines(pos, true));
       gl_FragColor = vec4(color, 1.0); // 片元颜色
     }
   </script>
