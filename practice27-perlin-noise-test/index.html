@@ -95,10 +95,9 @@
     }
 
     void main() {
-      vec2 pos = v_Pos.xy * vec2(3.0, 3.0);
-      pos += noise(pos) - 0.5;
-      // pos = rotate(0.2) * pos;
-      vec3 color = vec3(lines(pos, true));
+      vec2 pos = v_Pos.xy * vec2(2.0, 3.0);
+      vec2 dpos = pos + noise(pos) - 0.5;
+      vec3 color = vec3(lines(dpos - pos, true));
       gl_FragColor = vec4(color, 1.0); // 片元颜色
     }
   </script>
