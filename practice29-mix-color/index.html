@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>29. Mix Color</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0
+    }
+    canvas {
+      display: block;
+    }
+    #opt {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+    }
+  </style>
+  <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <script src="./initProgram.js"></script>
+</head>
+<body>
+  <canvas id="test" tabindex="1"></canvas>
+  <script type="shader-source" id="vertex">
+    precision mediump float; // 中等精度
+    attribute vec3 a_Pos; // 点坐标
+    varying vec3 v_Pos; // 插值点坐标
+    void main() {
+      gl_Position = vec4(a_Pos * vec3(1.0, 1.0, 1.0), 1.0); // 点坐标（屏幕坐标的y坐标轴是由下往上的）
+      v_Pos = a_Pos;
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    #define PI 3.14159265359
+    #define CHANGE false
+    #define LINE_RANGE 0.015
+    #define AXIS_RANGE 0.008
+    precision mediump float; // 中等精度
+    uniform float u_Time; // 当前时间戳
+    uniform vec2 u_Mouse; // 当前鼠标坐标
+    uniform vec2 u_Screen; // 窗口大小
+    uniform float u_Type; // 线条函数类型
+    varying vec3 v_Pos; // 插值点坐标
+    float aspect = u_Screen.x / u_Screen.y; // 宽高比
+
+    // 2维伪随机数
+    vec2 random2d (vec2 st) {
+      vec2 pos = vec2(
+        dot(st, vec2(192.42, 83.91)),
+        dot(st, vec2(39.6, 89.27))
+      );
+
+      // [-1, 1]
+      return 2.0 * fract(sin(pos) * 54381.361) - 1.0;
+    }
+
+    // 画线
+    float plot (vec2 p, float val) {
+      return smoothstep(
+        val - LINE_RANGE, val,
+        p.y
+      ) - smoothstep(
+        val, val + LINE_RANGE,
+        p.y
+      );
+    }
+
+    void main() {
+      vec3 a = vec3(0.3, 0.5, 0.9);
+      vec3 b = vec3(0.7, 0.2, 0.3);
+      float t = u_Time / 100.0;
+      vec3 color = vec3(0.0);
+      color.r = mix(a.r, b.r, abs(sin(t)));
+      color.g = mix(a.g, b.g, abs(cos(t)));
+      color.b = mix(a.b, b.b, smoothstep(0.0, 1.0, abs(sin(t))));
+      gl_FragColor = vec4(color, 1.0); // 片元颜色
+    }
+  </script>
+  <script>
+    let opt = document.getElementById('opt')
+    let demo = new Program({
+      needScreen: true,
+      needMouse: true,
+      updateTime: true,
+      loop: true,
+      uniform: {
+        u_Type: {
+          type: '1f',
+          value: 0
+        }
+      }
+    })
+    demo.start()
+  </script>
+</body>
+</html>
