@@ -30,7 +30,7 @@
     attribute vec3 a_Pos; // 点坐标
     varying vec3 v_Pos; // 插值点坐标
     void main() {
-      gl_Position = vec4(a_Pos * vec3(1.0, 1.0, 1.0), 1.0); // 点坐标（屏幕坐标的y坐标轴是由下往上的）
+      gl_Position = vec4(a_Pos * vec3(1.0, -1.0, 1.0), 1.0); // 点坐标（屏幕坐标的y坐标轴是由下往上的）
       v_Pos = a_Pos;
     }
   </script>
@@ -46,6 +46,7 @@
     uniform float u_Type; // 线条函数类型
     varying vec3 v_Pos; // 插值点坐标
     float aspect = u_Screen.x / u_Screen.y; // 宽高比
+    float TWO_PI = 2.0 * PI;
 
     // 2维伪随机数
     vec2 random2d (vec2 st) {
@@ -78,16 +79,18 @@
 
     void main() {
       vec2 pos = v_Pos.xy * vec2(aspect, 1.0);
+      float n = 6.0;
+      float per = TWO_PI / n;
       float x = pos.x;
       float y = pos.y;
       float radius = length(vec2(x, y));
-      float angle = atan(-y, -x) / PI;
-      vec3 color = hsb2rgb(vec3(angle, radius, 1.0)) * plot(sin(angle), radius);
+      float angle = atan(y, x);
+      float target = 0.5 * cos(angle - floor(angle / per + 0.5) * per); // 待分析
+      vec3 color = hsb2rgb(vec3(angle, radius, 1.0)) * plot(target, radius);
       gl_FragColor = vec4(color, 1.0); // 片元颜色
     }
   </script>
   <script>
-    let opt = document.getElementById('opt')
     let demo = new Program({
       needScreen: true,
       needMouse: true,

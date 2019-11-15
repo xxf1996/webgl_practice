@@ -14,11 +14,6 @@
     canvas {
       display: block;
     }
-    #opt {
-      position: fixed;
-      top: 10px;
-      right: 10px;
-    }
   </style>
   <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
   <script src="./initProgram.js"></script>
@@ -89,7 +84,6 @@
     }
   </script>
   <script>
-    let opt = document.getElementById('opt')
     let demo = new Program({
       needScreen: true,
       needMouse: true,
