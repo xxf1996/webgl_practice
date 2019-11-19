@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>32. Polygon</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0
+    }
+    canvas {
+      display: block;
+    }
+    #opt {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+    }
+  </style>
+  <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <script src="./initProgram.js"></script>
+</head>
+<body>
+  <canvas id="test" tabindex="1"></canvas>
+  <script type="shader-source" id="vertex">
+    precision mediump float; // 中等精度
+    attribute vec3 a_Pos; // 点坐标
+    varying vec3 v_Pos; // 插值点坐标
+    void main() {
+      gl_Position = vec4(a_Pos * vec3(1.0, -1.0, 1.0), 1.0); // 点坐标（屏幕坐标的y坐标轴是由下往上的）
+      v_Pos = a_Pos;
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    #define PI 3.14159265359
+    #define CHANGE false
+    #define LINE_RANGE 0.01
+    #define AXIS_RANGE 0.008
+    precision mediump float; // 中等精度
+    uniform float u_Time; // 当前时间戳
+    uniform vec2 u_Mouse; // 当前鼠标坐标
+    uniform vec2 u_Screen; // 窗口大小
+    uniform float u_Type; // 线条函数类型
+    varying vec3 v_Pos; // 插值点坐标
+    float aspect = u_Screen.x / u_Screen.y; // 宽高比
+    float TWO_PI = 2.0 * PI;
+
+    // 2维伪随机数
+    vec2 random2d (vec2 st) {
+      vec2 pos = vec2(
+        dot(st, vec2(192.42, 83.91)),
+        dot(st, vec2(39.6, 89.27))
+      );
+
+      // [-1, 1]
+      return 2.0 * fract(sin(pos) * 54381.361) - 1.0;
+    }
+
+    // 画线
+    float plot (float target, float val) {
+      return smoothstep(
+        val - LINE_RANGE, val,
+        target
+      ) - smoothstep(
+        val, val + LINE_RANGE,
+        target
+      );
+    }
+
+    // 将hsb颜色值转为rgb颜色值
+    vec3 hsb2rgb (vec3 c) {
+      vec3 rgb = clamp(abs(mod(c.x  * 6.0 + vec3(0.0, 4.0, 2.0), 6.0) - 3.0) - 1.0, 0.0, 1.0);
+      rgb = rgb * rgb * (3.0 - 2.0 * rgb);
+      return c.z * mix(vec3(1.0), rgb, c.y);
+    }
+
+    void main() {
+      vec2 pos = v_Pos.xy * vec2(aspect, 1.0);
+      float n = 6.0;
+      float h = 0.5;
+      float per = TWO_PI / n;
+      float x = pos.x;
+      float y = pos.y;
+      float radius = length(vec2(x, y));
+      float angle = atan(y, x);
+      float delta = cos(angle - floor(angle / per + 0.5) * per);
+      vec3 color = hsb2rgb(vec3(angle, radius, 1.0)) * plot(h, radius * delta); // 内切圆
+      gl_FragColor = vec4(color, 1.0); // 片元颜色
+    }
+  </script>
+  <script>
+    let demo = new Program({
+      needScreen: true,
+      needMouse: true,
+      updateTime: true,
+      loop: true,
+      uniform: {
+        u_Type: {
+          type: '1f',
+          value: 0
+        }
+      }
+    })
+    demo.start()
+  </script>
+</body>
+</html>
