@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>27. Perlin Noise Test</title>
+  <title>34. Shape Transform(follow mouse move)</title>
   <style>
     html,
     body {
@@ -13,6 +13,11 @@
     }
     canvas {
       display: block;
+    }
+    #opt {
+      position: fixed;
+      top: 10px;
+      right: 10px;
     }
   </style>
   <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
@@ -30,13 +35,18 @@
     }
   </script>
   <script type="shader-source" id="fragment">
-    #define PI 3.1415926
-    #define CHANGE true
+    #define PI 3.14159265359
+    #define CHANGE false
+    #define LINE_RANGE 0.01
+    #define AXIS_RANGE 0.008
     precision mediump float; // 中等精度
     uniform float u_Time; // 当前时间戳
     uniform vec2 u_Mouse; // 当前鼠标坐标
     uniform vec2 u_Screen; // 窗口大小
+    uniform float u_Type; // 线条函数类型
     varying vec3 v_Pos; // 插值点坐标
+    float aspect = u_Screen.x / u_Screen.y; // 宽高比
+    float TWO_PI = 2.0 * PI;
 
     // 2维伪随机数
     vec2 random2d (vec2 st) {
@@ -49,27 +59,28 @@
       return 2.0 * fract(sin(pos) * 54381.361) - 1.0;
     }
 
-    vec2 cubeVal (vec2 p) {
-      return p * p * (3.0 - 2.0 * p);
-    }
+    // 绘制矩形区域
+    float box (vec2 center, vec2 size, vec2 p) {
+      float w = size.x;
+      float h = size.y;
 
-    vec2 lineVal (vec2 p) {
-      return p;
-    }
-
-    vec2 logVal (vec2 p) {
-      return log2(1.0 + p);
-    }
-
-    vec2 triVal (vec2 p) {
-      return abs(cos(PI * p));
-    }
-
-    // sin条纹
-    float lines (vec2 pos, bool isY) {
-      float scale = 10.0;
-      vec2 p = pos * scale;
-      return smoothstep(0.0, 1.0, abs(sin(PI * (isY ? p.y : p.x) + (CHANGE ? u_Time / 100.0 : 0.0))));
+      return smoothstep(
+        center.y - h / 2.0 - h * 0.01,
+        center.y - h / 2.0,
+        p.y
+      ) - smoothstep(
+        center.y + h / 2.0,
+        center.y + h / 2.0  + h * 0.01,
+        p.y
+      ) + smoothstep(
+        center.x - w / 2.0 - w * 0.01,
+        center.x - w / 2.0,
+        p.x
+      ) - 1.0 - smoothstep(
+        center.x + w / 2.0,
+        center.x + w / 2.0  + w * 0.01,
+        p.x
+      );
     }
 
     // 2维旋转矩阵
@@ -77,27 +88,16 @@
       return mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
     }
 
-    // 2维perlin噪声
-    float noise (vec2 p) {
-      vec2 fpos = fract(p); // 小数部分
-      vec2 ipos = floor(p); // 整数部分
-      vec2 k = cubeVal(fpos); // 插值系数
-      float a = dot(random2d(ipos), fpos);
-      float b = dot(random2d(ipos + vec2(1.0, 0.0)), fpos - vec2(1.0, 0.0));
-      float c = dot(random2d(ipos + vec2(0.0, 1.0)), fpos - vec2(0.0, 1.0));
-      float d = dot(random2d(ipos + vec2(1.0, 1.0)), fpos - vec2(1.0, 1.0));
-      
-      return mix(
-        mix(a, b, k.x),
-        mix(c, d, k.x),
-        k.y
-      );
-    }
-
     void main() {
-      vec2 pos = v_Pos.xy * vec2(2.0, 3.0);
-      vec2 dpos = pos + noise(pos) - 0.5;
-      vec3 color = vec3(lines(dpos - pos, true));
+      vec2 pos = v_Pos.xy * vec2(aspect, 1.0);
+      vec2 mPos = u_Mouse * vec2(aspect, 1.0);
+      vec2 center = mPos;
+      vec2 s1 = vec2(0.1, 0.5);
+      vec2 s2 = vec2(0.5, 0.1);
+      pos -= center;
+      pos = rotate(u_Time / 15.0) * pos;
+      pos += center;
+      vec3 color = vec3(box(center, s1, pos) + box(center, s2, pos));
       gl_FragColor = vec4(color, 1.0); // 片元颜色
     }
   </script>
@@ -106,7 +106,13 @@
       needScreen: true,
       needMouse: true,
       updateTime: true,
-      loop: true
+      loop: true,
+      uniform: {
+        u_Type: {
+          type: '1f',
+          value: 0
+        }
+      }
     })
     demo.start()
   </script>
