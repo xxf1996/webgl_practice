@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>34. Shape Transform(follow mouse move)</title>
+  <title>36. Pattern Challenge 1</title>
   <style>
     html,
     body {
@@ -59,45 +59,88 @@
       return 2.0 * fract(sin(pos) * 54381.361) - 1.0;
     }
 
-    // 绘制矩形区域
-    float box (vec2 center, vec2 size, vec2 p) {
-      float w = size.x;
-      float h = size.y;
-
-      return smoothstep(
-        center.y - h / 2.0 - h * 0.01,
-        center.y - h / 2.0,
-        p.y
-      ) - smoothstep(
-        center.y + h / 2.0,
-        center.y + h / 2.0  + h * 0.01,
-        p.y
-      ) + smoothstep(
-        center.x - w / 2.0 - w * 0.01,
-        center.x - w / 2.0,
-        p.x
-      ) - 1.0 - smoothstep(
-        center.x + w / 2.0,
-        center.x + w / 2.0  + w * 0.01,
-        p.x
-      );
-    }
-
     // 2维旋转矩阵
     mat2 rotate (float angle) {
       return mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
     }
 
+    // 圆圈
+    float tile (vec2 p) {
+      vec2 center = vec2(0.5, 0.5);
+      p = p - center;
+      float angle = atan(p.y, p.x);
+      float len = length(p);
+      return smoothstep(
+        0.48,
+        0.49,
+        len
+      ) - smoothstep(
+        0.5,
+        0.51,
+        len
+      );
+    }
+
+    // 波浪线
+    float tile2 (vec2 p) {
+      vec2 center = vec2(0.5, 0.5);
+      p = p - center;
+      float angle = atan(p.y, p.x);
+      float len = length(p);
+      float target = 0.5 - 0.5 * abs(sin(p.x));
+      return smoothstep(
+        target - 0.02,
+        target - 0.01,
+        p.y
+      ) - smoothstep(
+        target,
+        target + 0.01,
+        p.y
+      );
+    }
+
+    // 图形11-3 https://thebookofshaders.com/09/geometricpatters.png
+    float tile3 (vec2 p) {
+      vec2 center = vec2(0.5, 0.5);
+      p = p - center;
+      vec2 tp = vec2(
+        p.x > 0.0 ? p.x - 0.5 : p.x + 0.5,
+        p.y > 0.0 ? p.y - 0.5 : p.y + 0.5
+      ); // 将坐标变换到相隔两个象限中（如第一象限则变到第三象限，第四象限则变到第二象限，等等）
+      float angle = atan(p.y, p.x);
+      float len = length(p);
+      float t_angle = atan(tp.y, tp.x);
+      float t_len = length(tp);
+      return smoothstep(
+        0.48,
+        0.49,
+        len
+      ) - smoothstep(
+        0.5,
+        0.51,
+        len
+      ) + smoothstep(
+        0.48,
+        0.49,
+        t_len
+      ) - smoothstep(
+        0.5,
+        0.51,
+        t_len
+      );
+    }
+
     void main() {
       vec2 pos = v_Pos.xy * vec2(aspect, 1.0);
       vec2 mPos = u_Mouse * vec2(aspect, 1.0);
-      vec2 center = mPos;
-      vec2 s1 = vec2(0.1, 0.5);
-      vec2 s2 = vec2(0.5, 0.1);
-      pos -= center; // 将图形移回原点
-      pos = rotate(u_Time / 15.0) * pos; // 再进行旋转
-      pos += center; // 最后移回原来的位置（不然就是绕原点旋转，而不是绕自身中心旋转了）
-      vec3 color = vec3(box(center, s1, pos) + box(center, s2, pos));
+      vec2 center = vec2(0.5, 0.5);
+      vec2 num = vec2(6.0, 6.0);
+      vec2 ipos = floor(pos * num); // 整数索引
+      vec2 fpos = fract(pos * num);
+      fpos -= center;
+      fpos = rotate(u_Time / 200.0) * fpos;
+      fpos += center;
+      vec3 color = vec3(tile3(fpos));
       gl_FragColor = vec4(color, 1.0); // 片元颜色
     }
   </script>

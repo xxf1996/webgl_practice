@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>34. Shape Transform(follow mouse move)</title>
+  <title>35. Pattern Test</title>
   <style>
     html,
     body {
@@ -83,6 +83,10 @@
       );
     }
 
+    float cross (vec2 center, vec2 size, vec2 p) {
+      return min(1.0, box(center, size, p) + box(center, size.yx, p));
+    }
+
     // 2维旋转矩阵
     mat2 rotate (float angle) {
       return mat2(cos(angle), -sin(angle), sin(angle), cos(angle));
@@ -91,13 +95,18 @@
     void main() {
       vec2 pos = v_Pos.xy * vec2(aspect, 1.0);
       vec2 mPos = u_Mouse * vec2(aspect, 1.0);
-      vec2 center = mPos;
-      vec2 s1 = vec2(0.1, 0.5);
-      vec2 s2 = vec2(0.5, 0.1);
-      pos -= center; // 将图形移回原点
-      pos = rotate(u_Time / 15.0) * pos; // 再进行旋转
-      pos += center; // 最后移回原来的位置（不然就是绕原点旋转，而不是绕自身中心旋转了）
-      vec3 color = vec3(box(center, s1, pos) + box(center, s2, pos));
+      vec2 center = vec2(0.5, 0.5);
+      vec2 s = vec2(0.15, 0.5);
+      vec2 num = vec2(10.0, 10.0); // 切割份数
+      vec2 ipos = floor(pos * num); // 整数索引
+      vec2 imouse = floor(mPos * num);
+      pos = fract(pos * num);
+      if (distance(imouse, ipos) < 3.0) {
+        pos -= center; // 将图形移回原点
+        pos = rotate(u_Time / 15.0) * pos; // 再进行旋转
+        pos += center; // 最后移回原来的位置（不然就是绕原点旋转，而不是绕自身中心旋转了）
+      }
+      vec3 color = vec3(cross(center, s, pos));
       gl_FragColor = vec4(color, 1.0); // 片元颜色
     }
   </script>
