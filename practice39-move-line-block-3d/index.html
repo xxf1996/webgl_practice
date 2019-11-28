@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>38. Move Line Block</title>
+  <title>39. Move Line Block(3d)</title>
   <style>
     html,
     body {
@@ -65,7 +65,7 @@
     // 按行分布，每行分割不同长度的矩形块，且颜色不同；每行速度都随机
     float pattern (vec2 pos) {
       float speed = random(floor(pos.y)) * 0.9 + 0.1; // 行速度
-      vec2 p = pos + vec2(speed * u_Time / 10.0, 0.0); // 计算移动后的位置
+      vec2 p = pos + vec2(speed * u_Time / 10.0, 0.0) * (pos.x > 0.0 ? 1.0 : -1.0); // 计算移动后的位置
       vec2 ipos = floor(p); // 整数索引
       vec2 fpos = fract(p);
       float k = random2d(ipos);
@@ -86,8 +86,15 @@
       if (u_Direction == 1.0) {
         pos = pos.yx;
       }
-      pos *= num;
-      vec3 color = vec3(pattern(pos));
+      float scale = 1.0 / (1.0 - (aspect - abs(pos.x)) / aspect * 0.5);
+      pos *= vec2(1.0, scale);
+      vec3 color;
+      if (abs(pos.y) > 1.0) {
+        color = vec3(0.0);
+      } else {
+        pos *= num;
+        color = vec3(pattern(pos));
+      }
       gl_FragColor = vec4(color, 1.0); // 片元颜色
     }
   </script>
