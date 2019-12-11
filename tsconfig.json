@@ -1,0 +1,20 @@
+{
+  "compilerOptions": {
+    "module": "CommonJS",
+    "noImplicitAny": false,
+    "removeComments": true,
+    "preserveConstEnums": true,
+    "sourceMap": false,
+    "rootDir": "./",
+    "types": [
+      "dat.gui"
+    ]
+  },
+  "include": [
+    "**/*"
+  ],
+  "files": [
+    "typings/global.d.ts",
+    "typings/shader-program/index.d.ts"
+  ]
+}

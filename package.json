@@ -1,0 +1,26 @@
+{
+  "name": "webgl-practice",
+  "version": "1.0.0",
+  "description": "webgl practice",
+  "main": "index.js",
+  "scripts": {
+    "build:ts": "tsc -p ./",
+    "start": "npm run build:ts"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xxf1996/webgl_practice.git"
+  },
+  "keywords": [
+    "webgl"
+  ],
+  "author": "xxf",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/xxf1996/webgl_practice/issues"
+  },
+  "homepage": "https://github.com/xxf1996/webgl_practice#readme",
+  "devDependencies": {
+    "@types/dat.gui": "^0.7.5"
+  }
+}

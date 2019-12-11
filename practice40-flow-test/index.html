@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>39. Move Line Block(3d)</title>
+  <title>40. Flow Test</title>
   <style>
     html,
     body {
@@ -21,7 +21,6 @@
     }
   </style>
   <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
-  <script src="https://cdn.bootcss.com/dat-gui/0.7.6/dat.gui.min.js"></script>
   <script src="../typings/shader-program/index.js"></script>
 </head>
 <body>
@@ -42,60 +41,30 @@
     uniform vec2 u_Mouse; // 当前鼠标坐标
     uniform vec2 u_Screen; // 窗口大小
     uniform float u_Seed; // 随机数种子
-    uniform float u_Direction; // 运动方向
     varying vec3 v_Pos; // 插值点坐标
     float aspect = u_Screen.x / u_Screen.y; // 宽高比
     float TWO_PI = 2.0 * PI;
+    float minR = 0.3;
+    float perR = 0.02;
 
-    // 2维伪随机数
-    float random2d (vec2 st) {
-      float n = dot(st, vec2(
-        1.096,
-        18.163
-      ));
+    // https://codepen.io/brainjam/pen/NWKNoKR
+    float flow (vec2 p) {
+      float cur = u_Time;
+      float idx = floor(cur / 360.0);
+      float detail = (cur - idx * 360.0) / 180.0 * PI - PI; // [-PI, PI]
+      float angle = atan(p.y, p.x);
+      float len = length(p);
+      float offset = (angle + PI) / TWO_PI * perR; // 内侧的偏移
+      float innerR = minR + offset; // 内侧圆半径
+      float outterR = innerR + (idx + (angle < detail ? 1.0 : 0.0)) * perR; // 外侧圆半径
 
-      return fract(sin(n * 64720.764));
-    }
-
-    // 一维伪随机
-    float random (float n) {
-      return fract(sin(n * 25673.234));
-    }
-
-    // 按行分布，每行分割不同长度的矩形块，且颜色不同；每行速度都随机
-    float pattern (vec2 pos, float scale) {
-      float speed = random(floor(pos.y)) * 0.9 + 0.1; // 行速度
-      vec2 p = pos + vec2(speed * u_Time / 10.0, 0.0) * (pos.x > 0.0 ? 1.0 : -1.0); // 计算移动后的位置
-      vec2 ipos = floor(p); // 整数索引
-      vec2 fpos = fract(p);
-      float k = random2d(ipos);
-      float c = k * 0.45 + 0.15;
-      float n = k * 0.5 + 0.1; // 长度
-      float offset = k * 0.2 + 0.05; // 偏移
-      float x = fpos.x;
-      float y = fpos.y;
-      
-      return min(1.0, smoothstep(0.95, 0.96, y)
-        + 1.0 - smoothstep(0.04, 0.05, y)
-        + (x > offset && x - offset < n ? c : 0.0));
+      return smoothstep(innerR - 0.01, innerR, len) - smoothstep(outterR - 0.01, outterR, len);
     }
 
     void main() {
       vec2 pos = v_Pos.xy * vec2(aspect, 1.0);
       vec2 mPos = u_Mouse * vec2(aspect, 1.0);
-      vec2 num = vec2(20.0, 30.0);
-      if (u_Direction == 1.0) {
-        pos = pos.yx;
-      }
-      float scale = 1.0 / (1.0 - (aspect - abs(pos.x)) / aspect * 0.5);
-      pos *= vec2(1.0, scale);
-      vec3 color;
-      if (abs(pos.y) > 1.0) {
-        color = vec3(0.0);
-      } else {
-        pos *= num;
-        color = vec3(pattern(pos, scale));
-      }
+      vec3 color = vec3(flow(pos));
       gl_FragColor = vec4(color, 1.0); // 片元颜色
     }
   </script>

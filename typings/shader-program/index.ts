@@ -1,10 +1,18 @@
-;(function (global) {
-  let winH = window.innerHeight // 窗口高度
-  let winW = window.innerWidth // 窗口宽度
-  let aspect = winW / winH // 屏幕宽高比
+/**
+ * 需要注意的是：只有暴露在全局的声明才能ts项目中进行使用及提示；
+ * 通过立即执行函数将函数或类暴露在window全局上，虽然实际上编译的js能够使用，但是ts和js文件中并不会有任何的提示；
+ * 将要暴露的函数或类通过立即执行函数返回给一个全局变量，这样既不会造成变量污染，也能够在ts文件中正常提示和校验类型！
+ * 在ts项目中，ts的声明并不能在js文件中使用？
+ * tsconfig中includes/files包括的文件范围就是能够使用ts声明的范围，若不包括则无法使用；默认没有的话就是项目中所有的文件。
+ */
+
+;var Program = (function (global: Global) {
+  let winH: number = global.innerHeight // 窗口高度
+  let winW: number = global.innerWidth // 窗口宽度
+  let aspect: number = winW / winH // 屏幕宽高比
 
   // 顶点等数组配置信息
-  const arrayInfo = {
+  const arrayInfo: AttributeBufferDef = {
     'a_Pos': {
       size: 3,
       normalize: false,
@@ -30,28 +38,28 @@
 
   /**
    * 按类型设置uniform属性值
-   * @param {WebGLRenderingContext} ctx webgl上下文
-   * @param {Object} info 属性信息
+   * @param ctx webgl上下文
+   * @param info 属性信息
    */
-  function setUniform (ctx, info) {
+  function setUniform (ctx: WebGLRenderingContext, info: AttributeInfo): void {
     switch (info.type) {
       case '1f':
-        ctx.uniform1f(info.pos, info.value)
+        ctx.uniform1f(info.pos, <number>info.value) // 类型断言
         break
       case '1i':
-        ctx.uniform1i(info.pos, info.value)
+        ctx.uniform1i(info.pos, <number>info.value)
         break
       case '2fv':
-        ctx.uniform2fv(info.pos, info.value)
+        ctx.uniform2fv(info.pos, <Float32List>info.value)
         break
       case '3fv':
-        ctx.uniform3fv(info.pos, info.value)
+        ctx.uniform3fv(info.pos, <Float32List>info.value)
         break
       case '3iv':
-        ctx.uniform3iv(info.pos, info.value)
+        ctx.uniform3iv(info.pos, <Float32List>info.value)
         break
       case 'm4fv':
-        ctx.uniformMatrix4fv(info.pos, false, info.value)
+        ctx.uniformMatrix4fv(info.pos, false, <Float32List>info.value)
         break
       default:
         console.log(`没有声明${info.type}类型！`)
@@ -60,29 +68,23 @@
   }
 
   /**
-   * 按类型设置attribute属性值
-   * @param {WebGLRenderingContext} ctx webgl上下文
-   * @param {Object} info 属性信息
+   * 按类型设置attribute属性值（attribute属性不支持矩阵类型？）
+   * @param ctx webgl上下文
+   * @param info 属性信息
    */
-  function setAttribute (ctx, info) {
+  function setAttribute (ctx: WebGLRenderingContext, info: AttributeInfo): void {
     switch (info.type) {
       case '1f':
-        ctx.vertexAttrib1f(info.pos, info.value)
+        ctx.vertexAttrib1f(<number>info.pos, <number>info.value)
         break
       case '2fv':
-        ctx.vertexAttrib2fv(info.pos, info.value)
-        break
-      case '1i':
-        ctx.vertexAttrib1i(info.pos, info.value)
+        ctx.vertexAttrib2fv(<number>info.pos, <Float32List>info.value)
         break
       case '3fv':
-        ctx.vertexAttrib3fv(info.pos, info.value)
+        ctx.vertexAttrib3fv(<number>info.pos, <Float32List>info.value)
         break
-      case '3iv':
-        ctx.vertexAttrib3iv(info.pos, info.value)
-        break
-      case 'm4fv':
-        ctx.vertexAttribMatrix4fv(info.pos, false, info.value)
+      case '4fv':
+        ctx.vertexAttrib4fv(<number>info.pos, <Float32List>info.value)
         break
       default:
         console.log(`没有声明${info.type}类型！`)
@@ -93,18 +95,32 @@
   /**
    * 空函数
    */
-  function noop () {}
+  function noop (): void {}
 
   /**
    * 初始化着色器和着色器程序，用于试验着色器效果
    */
-  class Program {
-    constructor (opts = {}) {
-      let canvas = document.getElementById(opts.name || 'test')
+  class ShdaerProgram {
+    private _CANVAS: HTMLCanvasElement
+    private _CONTEXT: WebGLRenderingContext
+    private pos: ProgramLocation
+    private buffers: Array<AttributeArrayBuffer>
+    private _UNIFORM: AttributeConfig
+    private _ATTR: AttributeConfig
+    private _updateTime: boolean
+    private _needScreen: boolean
+    private _needMouse: boolean
+    private _LOOP: boolean
+    private _LOOPFUNC: Function
+    private info: ProgramInfo
+    private program: WebGLProgram
+
+    constructor (opts: ProgramConfig = {}) {
+      let canvas: HTMLCanvasElement = <HTMLCanvasElement>document.getElementById(opts.name || 'test')
       canvas.width = winW
       canvas.height = winH
       this._CANVAS = canvas
-      this._CONTEXT = canvas.getContext('webgl') || canvas.getContext("experimental-webgl") // 创建webgl
+      this._CONTEXT = <WebGLRenderingContext>canvas.getContext('webgl') || <WebGLRenderingContext>canvas.getContext("experimental-webgl") // 创建webgl
       this.pos = {} // 着色器属性的地址
       this.buffers = [] // 数组缓冲信息
       this._UNIFORM = opts.uniform || {} // uniform属性信息
@@ -128,7 +144,7 @@
     /**
      * 初始化着色器程序
      */
-    initProgram () {
+    private initProgram (): void {
       const gl = this._CONTEXT
       const vertexShader = gl.createShader(gl.VERTEX_SHADER) // 创建着色器
       const fragShader = gl.createShader(gl.FRAGMENT_SHADER)
@@ -148,7 +164,7 @@
     /**
      * 填充整个窗口的矩形坐标
      */
-    initArea () {
+    private initArea (): void {
       this.info.vertices.push(
         -1, -1, 0,
         -1, 1, 0,
@@ -160,7 +176,7 @@
     /**
      * 初始化attribute和uniform属性相关配置
      */
-    initConfig () {
+    private initConfig (): void {
       // 是否实时更新时间到着色器
       if (this._updateTime) {
         this._UNIFORM['u_Time'] = {
@@ -193,7 +209,7 @@
     /**
      * 绑定着色器属性及保存属性地址位置等信息
      */
-    initVar () {
+    private initVar (): void {
       const gl = this._CONTEXT
       gl.useProgram(this.program) // 使用着色器程序（注意：未使用着色器程序前是无法获取uniform变量地址的）
       let attributeCount = gl.getProgramParameter(this.program, gl.ACTIVE_ATTRIBUTES) // 获取attribute属性个数
@@ -211,6 +227,7 @@
               size: bufferInfo.size,
               normalize: bufferInfo.normalize,
               stride: bufferInfo.stride,
+              offset: bufferInfo.offset,
               buffer: buffer,
               array: new Float32Array(this.getInfoByName(attributeInfo.name))
             }
@@ -244,9 +261,9 @@
 
     /**
      * 根据着色器属性名称得到相应的数组信息
-     * @param {string} name 着色器属性名称
+     * @param name 着色器属性名称
      */
-    getInfoByName (name) {
+    private getInfoByName (name: string): number[] {
       let res = []
       switch (name) {
         case 'a_Pos':
@@ -266,23 +283,23 @@
     /**
      * 更新webgl上下文的buffer为模型相关的buffer，否则使用的array信息为其他模型的buffer
      */
-    updateBuffer () {
+    private updateBuffer (): void {
       const gl = this._CONTEXT
       gl.useProgram(this.program)
       this.buffers.forEach(item => {
         gl.bindBuffer(gl[item.type], item.buffer)
         gl.bufferData(gl[item.type], item.array, gl.STATIC_DRAW)
-        gl.enableVertexAttribArray(item.pos)
-        gl.vertexAttribPointer(item.pos, item.size, gl.FLOAT, item.normalize, item.stride, item.offset)
+        gl.enableVertexAttribArray(<number>item.pos)
+        gl.vertexAttribPointer(<number>item.pos, item.size, gl.FLOAT, item.normalize, item.stride, item.offset)
       })
     }
 
     /**
      * 更新uniform属性值
-     * @param {string} name uniform属性名称
-     * @param {any} value 属性值
+     * @param name uniform属性名称
+     * @param value 属性值
      */
-    updateUniform (name, value) {
+    updateUniform (name: string, value: number | Float32List): void {
       const gl = this._CONTEXT
       gl.useProgram(this.program)
       let info = this._UNIFORM[name]
@@ -298,7 +315,7 @@
     /**
      * 绘制图形
      */
-    draw () {
+    draw (): void {
       const gl = this._CONTEXT
       this.updateBuffer()
       // gl.drawElements(gl.TRIANGLES, this.info.indices.length, gl.UNSIGNED_SHORT, 0)
@@ -308,7 +325,7 @@
     /**
      * 循环执行函数
      */
-    loop () {
+    loop (): void {
       const gl = this._CONTEXT
       let isLoop = this._LOOP
       let t = 0
@@ -330,9 +347,9 @@
 
     /**
      * 开始执行循环
-     * @param {Function} callback 每次循环执行的回调函数
+     * @param callback 每次循环执行的回调函数
      */
-    start (callback) {
+    start (callback?: Function): void {
       if (callback) {
         this._LOOPFUNC = callback
       }
@@ -340,5 +357,5 @@
     }
   }
 
-  global.Program = Program
+  return ShdaerProgram
 })(window)

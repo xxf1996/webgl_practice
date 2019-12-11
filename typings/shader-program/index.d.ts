@@ -1,5 +1,3 @@
-declare class Program {}
-
 /**
  * attribute属性和uniform属性的类型范围
  */
