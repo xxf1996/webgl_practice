@@ -34,6 +34,9 @@ var Program = (function (global) {
             case '1i':
                 ctx.uniform1i(info.pos, info.value);
                 break;
+            case '1fv':
+                ctx.uniform1fv(info.pos, info.value);
+                break;
             case '2fv':
                 ctx.uniform2fv(info.pos, info.value);
                 break;

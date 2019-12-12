@@ -49,6 +49,9 @@
       case '1i':
         ctx.uniform1i(info.pos, <number>info.value)
         break
+      case '1fv':
+        ctx.uniform1fv(info.pos, <Float32List>info.value)
+        break
       case '2fv':
         ctx.uniform2fv(info.pos, <Float32List>info.value)
         break
@@ -287,10 +290,10 @@
       const gl = this._CONTEXT
       gl.useProgram(this.program)
       this.buffers.forEach(item => {
-        gl.bindBuffer(gl[item.type], item.buffer)
-        gl.bufferData(gl[item.type], item.array, gl.STATIC_DRAW)
-        gl.enableVertexAttribArray(<number>item.pos)
-        gl.vertexAttribPointer(<number>item.pos, item.size, gl.FLOAT, item.normalize, item.stride, item.offset)
+        gl.bindBuffer(gl[item.type], item.buffer) // 绑定缓冲区
+        gl.bufferData(gl[item.type], item.array, gl.STATIC_DRAW) // 向缓冲区填充数据
+        gl.enableVertexAttribArray(<number>item.pos) // 开启(缓冲数组)属性
+        gl.vertexAttribPointer(<number>item.pos, item.size, gl.FLOAT, item.normalize, item.stride, item.offset) // 将属性指向缓冲区
       })
     }
 

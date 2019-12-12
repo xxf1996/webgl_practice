@@ -13,6 +13,14 @@
       u_Seed: {
         type: '1f',
         value: cur / 1000 - Math.floor(cur / 1000)
+      },
+      'u_Test[0]': { // 数组类型的属性，使用方法自动获取属性名称时，实际上为`xxx[0]`
+        type: '1fv',
+        value: [
+          0.01,
+          0.1,
+          0.3
+        ]
       }
     }
   })
