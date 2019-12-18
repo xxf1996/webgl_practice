@@ -64,6 +64,11 @@
       case 'm4fv':
         ctx.uniformMatrix4fv(info.pos, false, <Float32List>info.value)
         break
+      case 'sampler2D': // 2d纹理取样器
+        let texture = ctx.createTexture()
+        ctx.bindTexture(ctx.TEXTURE_2D, texture)
+        ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGB, info.textureSize.w, info.textureSize.h, 0, ctx.RGB, ctx.UNSIGNED_BYTE, <Uint8Array>info.value)
+        break
       default:
         console.log(`没有声明${info.type}类型！`)
         break
@@ -257,6 +262,28 @@
             pos: uniformPos,
             type: info.type,
             value: info.value
+          })
+        }
+      }
+    }
+    
+    /**
+     * 新增uniform（针对异步加载数据或后面新增）
+     * @param info uniform属性信息
+     */
+    addUniforms (info: AttributeConfig): void {
+      const gl = this._CONTEXT
+      gl.useProgram(this.program)
+
+      for (let name in info) {
+        let uniformInfo = info[name]
+        let uniformPos = gl.getUniformLocation(this.program, name)
+        if (uniformPos !== undefined) {
+          this.pos[name] = uniformPos
+          setUniform(gl, {
+            pos: uniformPos,
+            type: uniformInfo.type,
+            value: uniformInfo.value
           })
         }
       }

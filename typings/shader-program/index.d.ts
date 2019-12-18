@@ -51,7 +51,11 @@ interface AttributeArrayBuffer {
  */
 interface AttributeItem {
   type: string,
-  value?: number | Float32List
+  value?: number | Float32List,
+  textureSize?: {
+    w: number,
+    h: number
+  } // 纹理尺寸
 }
 
 /**

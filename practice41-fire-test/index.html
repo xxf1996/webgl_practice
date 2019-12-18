@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>41. Fire Test</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      display: block;
+    }
+    #opt {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+    }
+  </style>
+  <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <script src="../typings/shader-program/index.js"></script>
+  <script src="../typings/tools/index.js"></script>
+</head>
+<body>
+  <canvas id="test" tabindex="1"></canvas>
+  <script type="shader-source" id="vertex">
+    precision mediump float; // 中等精度
+    attribute vec3 a_Pos; // 点坐标
+    varying vec3 v_Pos; // 插值点坐标
+    void main() {
+      gl_Position = vec4(a_Pos * vec3(1.0, 1.0, 1.0), 1.0); // 点坐标（屏幕坐标的y坐标轴是由下往上的）
+      v_Pos = a_Pos;
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    #define PI 3.14159265359
+    precision mediump float; // 中等精度
+    uniform float u_Time; // 当前时间戳
+    uniform vec2 u_Mouse; // 当前鼠标坐标
+    uniform vec2 u_Screen; // 窗口大小
+    uniform vec3 u_Info[2];
+    uniform float u_Seed; // 随机数种子
+    varying vec3 v_Pos; // 插值点坐标
+    float aspect = u_Screen.x / u_Screen.y; // 宽高比
+    float TWO_PI = 2.0 * PI;
+
+    float fires (vec2 p) {
+      vec3 test = u_Info[1];
+      float r = test.z;
+      vec2 dpos = test.xy - p;
+
+      return length(dpos) < r ? 1.0 : 0.0;
+    }
+
+    void main() {
+      vec2 pos = v_Pos.xy * vec2(aspect, 1.0);
+      vec2 mPos = u_Mouse * vec2(aspect, 1.0);
+      vec3 color = vec3(0.6, 0.0, 0.0) * fires(pos);
+      gl_FragColor = vec4(color, 1.0); // 片元颜色
+    }
+  </script>
+  <script src="./index.js"></script>
+</body>
+</html>
