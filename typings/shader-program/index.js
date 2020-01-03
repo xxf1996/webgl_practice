@@ -1,3 +1,14 @@
+var __assign = (this && this.__assign) || function () {
+    __assign = Object.assign || function(t) {
+        for (var s, i = 1, n = arguments.length; i < n; i++) {
+            s = arguments[i];
+            for (var p in s) if (Object.prototype.hasOwnProperty.call(s, p))
+                t[p] = s[p];
+        }
+        return t;
+    };
+    return __assign.apply(this, arguments);
+};
 ;
 var Program = (function (global) {
     var winH = global.innerHeight;
@@ -48,6 +59,14 @@ var Program = (function (global) {
                 break;
             case 'm4fv':
                 ctx.uniformMatrix4fv(info.pos, false, info.value);
+                break;
+            case 'sampler2D':
+                var texture = ctx.createTexture();
+                ctx.bindTexture(ctx.TEXTURE_2D, texture);
+                ctx.uniform1i(info.pos, 0);
+                ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, info.value);
+                ctx.texParameterf(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.LINEAR);
+                ctx.texParameterf(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.LINEAR);
                 break;
             default:
                 console.log("\u6CA1\u6709\u58F0\u660E" + info.type + "\u7C7B\u578B\uFF01");
@@ -189,6 +208,18 @@ var Program = (function (global) {
                         type: info.type,
                         value: info.value
                     });
+                }
+            }
+        };
+        ShdaerProgram.prototype.addUniforms = function (info) {
+            var gl = this._CONTEXT;
+            gl.useProgram(this.program);
+            for (var name_1 in info) {
+                var uniformInfo = info[name_1];
+                var uniformPos = gl.getUniformLocation(this.program, name_1);
+                if (uniformPos !== undefined) {
+                    this.pos[name_1] = uniformPos;
+                    setUniform(gl, __assign({ pos: uniformPos }, uniformInfo));
                 }
             }
         };

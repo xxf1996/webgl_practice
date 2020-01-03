@@ -67,7 +67,11 @@
       case 'sampler2D': // 2d纹理取样器
         let texture = ctx.createTexture()
         ctx.bindTexture(ctx.TEXTURE_2D, texture)
-        ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGB, info.textureSize.w, info.textureSize.h, 0, ctx.RGB, ctx.UNSIGNED_BYTE, <Uint8Array>info.value)
+        ctx.uniform1i(info.pos, 0) // 绑定至0号纹理
+        ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, <HTMLImageElement>info.value)
+        // ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGB, info.textureSize.w, info.textureSize.h, 0, ctx.RGB, ctx.UNSIGNED_BYTE, <Uint8Array>info.value)
+        ctx.texParameterf(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.LINEAR) // 指定纹理缩小取样算法
+        ctx.texParameterf(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.LINEAR) // 指定纹理放大取样算法
         break
       default:
         console.log(`没有声明${info.type}类型！`)
@@ -282,8 +286,7 @@
           this.pos[name] = uniformPos
           setUniform(gl, {
             pos: uniformPos,
-            type: uniformInfo.type,
-            value: uniformInfo.value
+            ...uniformInfo
           })
         }
       }

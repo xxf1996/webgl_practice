@@ -51,7 +51,7 @@ interface AttributeArrayBuffer {
  */
 interface AttributeItem {
   type: string,
-  value?: number | Float32List,
+  value?: number | Float32List | HTMLImageElement,
   textureSize?: {
     w: number,
     h: number
