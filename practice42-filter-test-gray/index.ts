@@ -1,4 +1,8 @@
 (() => {
+  let guiInfo = {
+    grayFactor: 1
+  }
+  let gui = new dat.GUI()
   let cur = Date.now()
   let demo = new Program({
     needScreen: true,
@@ -16,6 +20,7 @@
       }
     }
   })
+  // 加载纹理图片
   let pic = new Image()
   pic.onload = e => {
     demo.addUniforms({
@@ -33,10 +38,20 @@
           pic.width,
           pic.height
         ]
+      },
+      u_Gray: {
+        type: '1f',
+        value: guiInfo.grayFactor
       }
     })
     console.log(pic.width, pic.height)
     demo.start()
   }
   pic.src = './test.jpg'
+  gui
+    .add(guiInfo, 'grayFactor', 0, 1, 0.01)
+    .name('灰度因子')
+    .onFinishChange(() => {
+      demo.updateUniform('u_Gray', guiInfo.grayFactor)
+    })
 })()

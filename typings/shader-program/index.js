@@ -14,6 +14,7 @@ var Program = (function (global) {
     var winH = global.innerHeight;
     var winW = global.innerWidth;
     var aspect = winW / winH;
+    var textureBuffer = null;
     var arrayInfo = {
         'a_Pos': {
             size: 3,
@@ -61,10 +62,14 @@ var Program = (function (global) {
                 ctx.uniformMatrix4fv(info.pos, false, info.value);
                 break;
             case 'sampler2D':
-                var texture = ctx.createTexture();
-                ctx.bindTexture(ctx.TEXTURE_2D, texture);
+                if (textureBuffer === null) {
+                    textureBuffer = ctx.createTexture();
+                }
+                ctx.bindTexture(ctx.TEXTURE_2D, textureBuffer);
                 ctx.uniform1i(info.pos, 0);
                 ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, info.value);
+                ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE);
+                ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE);
                 ctx.texParameterf(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.LINEAR);
                 ctx.texParameterf(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.LINEAR);
                 break;
@@ -219,6 +224,7 @@ var Program = (function (global) {
                 var uniformPos = gl.getUniformLocation(this.program, name_1);
                 if (uniformPos !== undefined) {
                     this.pos[name_1] = uniformPos;
+                    this._UNIFORM[name_1] = uniformInfo;
                     setUniform(gl, __assign({ pos: uniformPos }, uniformInfo));
                 }
             }

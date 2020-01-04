@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>42. Filter Test</title>
+  <title>43. Filter Test: video + gray</title>
   <style>
     html,
     body {
@@ -19,19 +19,24 @@
       top: 10px;
       right: 10px;
     }
+    #v {
+      display: none;
+    }
   </style>
   <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <script src="https://cdn.bootcss.com/dat-gui/0.7.6/dat.gui.min.js"></script>
   <script src="../typings/shader-program/index.js"></script>
   <script src="../typings/tools/index.js"></script>
 </head>
 <body>
   <canvas id="test" tabindex="1"></canvas>
+  <video id="v"></video>
   <script type="shader-source" id="vertex">
     precision mediump float; // 中等精度
     attribute vec3 a_Pos; // 点坐标
     varying vec3 v_Pos; // 插值点坐标
     void main() {
-      gl_Position = vec4((a_Pos + vec3(1.0, 1.0, 0.0)) * 0.5, 1.0); // 点坐标（屏幕坐标的y坐标轴是由下往上的）
+      gl_Position = vec4(a_Pos * vec3(1.0, -1.0, 1.0), 1.0); // 点坐标（屏幕坐标的y坐标轴是由下往上的）
       v_Pos = a_Pos;
     }
   </script>
@@ -44,13 +49,22 @@
     uniform float u_Seed; // 随机数种子
     uniform sampler2D u_Pic; // 图片
     uniform vec2 u_PicSize; // 图片尺寸
+    uniform float u_Gray; // 灰度因子
     varying vec3 v_Pos; // 插值点坐标
     float aspect = u_Screen.x / u_Screen.y; // 宽高比
     float TWO_PI = 2.0 * PI;
+    vec2 pixel = vec2(1.0) / u_Screen; // 得到屏幕的一个像素的宽高
+
+    vec4 gray (vec4 pixelColor, float factor) {
+      float grayVal = 0.2989 * pixelColor.r + 0.5870 * pixelColor.g + 0.1140 * pixelColor.b;
+      return vec4(grayVal, grayVal, grayVal, 1.0) * factor + pixelColor * (1.0 - factor);
+    }
 
     void main() {
-      vec2 pos = v_Pos.xy * vec2(aspect, 1.0);
-      gl_FragColor = texture2D(u_Pic, pos); // 片元颜色
+      vec2 pos = (v_Pos.xy + vec2(1.0, 1.0)) * 0.5; // 将坐标转换到[0, 1]
+      vec2 picPos = pos / pixel / u_PicSize; // 算出当前像素在图片中的位置（图片的实际尺寸）
+      vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
+      gl_FragColor =  (picPos.x > 1.0 || picPos.y > 1.0) ? color : gray(texture2D(u_Pic, picPos), u_Gray); // 片元颜色
     }
   </script>
   <script src="./index.js"></script>

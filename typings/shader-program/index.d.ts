@@ -15,6 +15,11 @@ declare enum AttributeType {
 type LocationType = number | WebGLUniformLocation
 
 /**
+ * attribute或uniform属性的值
+ */
+type AttributeValue = number | Float32List | HTMLImageElement | HTMLVideoElement
+
+/**
  * attribute属性的buffer信息
  */
 interface AttributeBuffer {
@@ -51,7 +56,7 @@ interface AttributeArrayBuffer {
  */
 interface AttributeItem {
   type: string,
-  value?: number | Float32List | HTMLImageElement,
+  value?: AttributeValue,
   textureSize?: {
     w: number,
     h: number

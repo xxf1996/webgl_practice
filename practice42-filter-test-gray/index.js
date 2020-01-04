@@ -1,4 +1,8 @@
 (function () {
+    var guiInfo = {
+        grayFactor: 1
+    };
+    var gui = new dat.GUI();
     var cur = Date.now();
     var demo = new Program({
         needScreen: true,
@@ -33,10 +37,20 @@
                     pic.width,
                     pic.height
                 ]
+            },
+            u_Gray: {
+                type: '1f',
+                value: guiInfo.grayFactor
             }
         });
         console.log(pic.width, pic.height);
         demo.start();
     };
     pic.src = './test.jpg';
+    gui
+        .add(guiInfo, 'grayFactor', 0, 1, 0.01)
+        .name('灰度因子')
+        .onFinishChange(function () {
+        demo.updateUniform('u_Gray', guiInfo.grayFactor);
+    });
 })();

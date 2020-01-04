@@ -10,6 +10,7 @@
   let winH: number = global.innerHeight // 窗口高度
   let winW: number = global.innerWidth // 窗口宽度
   let aspect: number = winW / winH // 屏幕宽高比
+  let textureBuffer = null; // 一个着色器共用一个纹理缓冲对象，避免占用过多GPU内存
 
   // 顶点等数组配置信息
   const arrayInfo: AttributeBufferDef = {
@@ -65,11 +66,15 @@
         ctx.uniformMatrix4fv(info.pos, false, <Float32List>info.value)
         break
       case 'sampler2D': // 2d纹理取样器
-        let texture = ctx.createTexture()
-        ctx.bindTexture(ctx.TEXTURE_2D, texture)
+        if (textureBuffer === null) { // 避免重复创建buffer！
+          textureBuffer = ctx.createTexture()
+        }
+        ctx.bindTexture(ctx.TEXTURE_2D, textureBuffer)
         ctx.uniform1i(info.pos, 0) // 绑定至0号纹理
         ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, <HTMLImageElement>info.value)
         // ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGB, info.textureSize.w, info.textureSize.h, 0, ctx.RGB, ctx.UNSIGNED_BYTE, <Uint8Array>info.value)
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE)
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE)
         ctx.texParameterf(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.LINEAR) // 指定纹理缩小取样算法
         ctx.texParameterf(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.LINEAR) // 指定纹理放大取样算法
         break
@@ -284,6 +289,7 @@
         let uniformPos = gl.getUniformLocation(this.program, name)
         if (uniformPos !== undefined) {
           this.pos[name] = uniformPos
+          this._UNIFORM[name] = uniformInfo // 保存uniform信息
           setUniform(gl, {
             pos: uniformPos,
             ...uniformInfo
@@ -332,7 +338,7 @@
      * @param name uniform属性名称
      * @param value 属性值
      */
-    updateUniform (name: string, value: number | Float32List): void {
+    updateUniform (name: string, value: AttributeValue): void {
       const gl = this._CONTEXT
       gl.useProgram(this.program)
       let info = this._UNIFORM[name]
