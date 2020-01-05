@@ -1,7 +1,9 @@
 (function () {
     var guiInfo = {
-        grayFactor: 1
+        radius: 1,
+        sigma: 1.5
     };
+    var gaussianImage = null;
     var gui = new dat.GUI();
     var cur = Date.now();
     var demo = new Program({
@@ -17,10 +19,38 @@
             'u_Info[0]': {
                 type: '3fv',
                 value: []
+            },
+            u_Gaussian: {
+                type: 'sampler2D',
+                value: gaussianImage,
+                textureSize: {
+                    w: 64,
+                    h: 1
+                }
+            },
+            u_BlurSize: {
+                type: '1f',
+                value: guiInfo.radius
             }
         }
     });
     var video = document.getElementById('v');
+    function setGaussianImage() {
+        var kernel = ShaderTool.gaussianBlur(guiInfo.radius, guiInfo.sigma);
+        var pixelList = [];
+        var width = guiInfo.radius * 2 + 1;
+        kernel.slice(0, width).forEach(function (pixel) {
+            pixelList.push(pixel * 255, 0, 0, 255);
+        });
+        var img = new ImageData(new Uint8ClampedArray(new Uint8Array(pixelList), width, 1), width, 1);
+        gaussianImage = img;
+        console.log(gaussianImage);
+    }
+    function changeGaussian() {
+        setGaussianImage();
+        demo.updateUniform('u_Gaussian', gaussianImage);
+        demo.updateUniform('u_BlurSize', guiInfo.radius);
+    }
     function updateVideo() {
         demo.updateUniform('u_Pic', video);
     }
@@ -41,25 +71,28 @@
                     video.videoWidth,
                     video.videoHeight
                 ]
-            },
-            u_Gray: {
-                type: '1f',
-                value: guiInfo.grayFactor
             }
         });
         console.log(video.videoWidth, video.videoHeight);
         demo.start(updateVideo);
         video.removeEventListener('canplaythrough', playVideo);
     }
+    setGaussianImage();
     video.addEventListener('canplaythrough', playVideo);
     video.muted = true;
     video.loop = true;
     video.preload = 'auto';
     video.src = '../assets/test.mp4';
     gui
-        .add(guiInfo, 'grayFactor', 0, 1, 0.01)
-        .name('灰度因子')
+        .add(guiInfo, 'radius', 1, 15, 1)
+        .name('模糊半径')
         .onFinishChange(function () {
-        demo.updateUniform('u_Gray', guiInfo.grayFactor);
+        changeGaussian();
+    });
+    gui
+        .add(guiInfo, 'sigma', 1, 5, 0.01)
+        .name('方差')
+        .onFinishChange(function () {
+        changeGaussian();
     });
 })();
