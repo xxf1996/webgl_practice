@@ -13,10 +13,6 @@
       u_Seed: {
         type: '1f',
         value: cur / 1000 - Math.floor(cur / 1000)
-      },
-      'u_Info[0]': {
-        type: '3fv',
-        value: []
       }
     }
   })
@@ -47,7 +43,7 @@
     console.log(pic.width, pic.height)
     demo.start()
   }
-  pic.src = './test.jpg'
+  pic.src = '../assets/test.png'
   gui
     .add(guiInfo, 'grayFactor', 0, 1, 0.01)
     .name('灰度因子')

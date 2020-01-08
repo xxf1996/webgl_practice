@@ -17,7 +17,8 @@ var ShaderTool = (function (global) {
                 total += item;
             }
         }
-        normal = origin.map(function (item) { return item / total; });
+        normal = origin.map(function (item) { return item / total * 255; });
+        console.log(normal);
         return normal;
     }
     return {

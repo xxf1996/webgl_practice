@@ -15,6 +15,7 @@ var Program = (function (global) {
     var winW = global.innerWidth;
     var aspect = winW / winH;
     var textureBuffer = null;
+    var textureID = 0;
     var arrayInfo = {
         'a_Pos': {
             size: 3,
@@ -62,11 +63,10 @@ var Program = (function (global) {
                 ctx.uniformMatrix4fv(info.pos, false, info.value);
                 break;
             case 'sampler2D':
-                if (textureBuffer === null) {
-                    textureBuffer = ctx.createTexture();
-                }
-                ctx.bindTexture(ctx.TEXTURE_2D, textureBuffer);
-                ctx.uniform1i(info.pos, 0);
+                console.log(info);
+                ctx.activeTexture(ctx.TEXTURE0 + info.textureID);
+                ctx.bindTexture(ctx.TEXTURE_2D, info.textureBuffer);
+                ctx.uniform1i(info.pos, info.textureID);
                 ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, info.value);
                 ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE);
                 ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE);
@@ -76,6 +76,15 @@ var Program = (function (global) {
             default:
                 console.log("\u6CA1\u6709\u58F0\u660E" + info.type + "\u7C7B\u578B\uFF01");
                 break;
+        }
+    }
+    function addSamplerInfo(ctx, info) {
+        if (info.textureID === undefined) {
+            info.textureID = textureID;
+            textureID++;
+        }
+        if (info.textureBuffer === undefined) {
+            info.textureBuffer = ctx.createTexture();
         }
     }
     function setAttribute(ctx, info) {
@@ -208,11 +217,10 @@ var Program = (function (global) {
                 this.pos[uniformInfo.name] = uniformPos;
                 var info = this._UNIFORM[uniformInfo.name];
                 if (info && info.type) {
-                    setUniform(gl, {
-                        pos: uniformPos,
-                        type: info.type,
-                        value: info.value
-                    });
+                    if (info.type === 'sampler2D') {
+                        addSamplerInfo(gl, info);
+                    }
+                    setUniform(gl, __assign({ pos: uniformPos }, info));
                 }
             }
         };
@@ -222,6 +230,9 @@ var Program = (function (global) {
             for (var name_1 in info) {
                 var uniformInfo = info[name_1];
                 var uniformPos = gl.getUniformLocation(this.program, name_1);
+                if (uniformInfo.type === 'sampler2D') {
+                    addSamplerInfo(gl, uniformInfo);
+                }
                 if (uniformPos !== undefined) {
                     this.pos[name_1] = uniformPos;
                     this._UNIFORM[name_1] = uniformInfo;
@@ -260,11 +271,7 @@ var Program = (function (global) {
             gl.useProgram(this.program);
             var info = this._UNIFORM[name];
             if (info.type) {
-                setUniform(gl, {
-                    pos: this.pos[name],
-                    type: info.type,
-                    value: value
-                });
+                setUniform(gl, __assign({ pos: this.pos[name] }, info, { value: value }));
             }
         };
         ShdaerProgram.prototype.draw = function () {

@@ -11,6 +11,7 @@
   let winW: number = global.innerWidth // 窗口宽度
   let aspect: number = winW / winH // 屏幕宽高比
   let textureBuffer = null; // 一个着色器共用一个纹理缓冲对象，避免占用过多GPU内存
+  let textureID = 0; // 纹理通道
 
   // 顶点等数组配置信息
   const arrayInfo: AttributeBufferDef = {
@@ -66,12 +67,11 @@
         ctx.uniformMatrix4fv(info.pos, false, <Float32List>info.value)
         break
       case 'sampler2D': // 2d纹理取样器
-        if (textureBuffer === null) { // 避免重复创建buffer！
-          textureBuffer = ctx.createTexture()
-        }
-        ctx.bindTexture(ctx.TEXTURE_2D, textureBuffer)
-        ctx.uniform1i(info.pos, 0) // 绑定至0号纹理
-        ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, <HTMLImageElement>info.value)
+        console.log(info)
+        ctx.activeTexture(ctx.TEXTURE0 + info.textureID) // 首先激活对应的纹理通道
+        ctx.bindTexture(ctx.TEXTURE_2D, info.textureBuffer) // 然后将纹理缓冲绑定到通道
+        ctx.uniform1i(info.pos, info.textureID) // 将纹理通道连接到取样器
+        ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, <HTMLImageElement|ImageData>info.value)
         // ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGB, info.textureSize.w, info.textureSize.h, 0, ctx.RGB, ctx.UNSIGNED_BYTE, <Uint8Array>info.value)
         ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE)
         ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE)
@@ -81,6 +81,18 @@
       default:
         console.log(`没有声明${info.type}类型！`)
         break
+    }
+  }
+
+  // 为纹理类型的数据分配通道
+  function addSamplerInfo (ctx:WebGLRenderingContext, info: AttributeItem) {
+    if (info.textureID === undefined) { // 默认自动分配纹理通道
+      info.textureID = textureID
+      textureID++
+    }
+
+    if (info.textureBuffer === undefined) {
+      info.textureBuffer = ctx.createTexture()
     }
   }
 
@@ -267,10 +279,12 @@
         this.pos[uniformInfo.name] = uniformPos
         let info = this._UNIFORM[uniformInfo.name]
         if (info && info.type) {
+          if (info.type === 'sampler2D') {
+            addSamplerInfo(gl, info)
+          }
           setUniform(gl, {
             pos: uniformPos,
-            type: info.type,
-            value: info.value
+            ...info
           })
         }
       }
@@ -287,6 +301,9 @@
       for (let name in info) {
         let uniformInfo = info[name]
         let uniformPos = gl.getUniformLocation(this.program, name)
+        if (uniformInfo.type === 'sampler2D') {
+          addSamplerInfo(gl, uniformInfo)
+        }
         if (uniformPos !== undefined) {
           this.pos[name] = uniformPos
           this._UNIFORM[name] = uniformInfo // 保存uniform信息
@@ -345,7 +362,7 @@
       if (info.type) {
         setUniform(gl, {
           pos: this.pos[name],
-          type: info.type,
+          ...info,
           value: value
         })
       }

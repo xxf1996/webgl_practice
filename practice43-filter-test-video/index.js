@@ -13,10 +13,6 @@
             u_Seed: {
                 type: '1f',
                 value: cur / 1000 - Math.floor(cur / 1000)
-            },
-            'u_Info[0]': {
-                type: '3fv',
-                value: []
             }
         }
     });

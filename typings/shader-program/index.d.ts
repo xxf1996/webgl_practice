@@ -60,7 +60,9 @@ interface AttributeItem {
   textureSize?: {
     w: number,
     h: number
-  } // 纹理尺寸
+  }, // 纹理尺寸
+  textureID?: number, // 纹理通道
+  textureBuffer?: WebGLTexture // 纹理缓冲
 }
 
 /**

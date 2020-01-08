@@ -1,13 +1,13 @@
 (() => {
   let guiInfo = {
-    radius: 1,
+    radius: 3,
     sigma: 1.5
   }
   let gaussianImage = null
   let gui = new dat.GUI()
   let cur = Date.now()
 
-  setGaussianImage() // 第一次手动获取高斯模糊内核数据
+  setGaussianImage() // 第一次手动获取高斯模糊参数
 
   let demo = new Program({
     needScreen: true,
@@ -29,14 +29,39 @@
       }
     }
   })
-  let video = <HTMLVideoElement>document.getElementById('v')
+
+
+  // 加载纹理图片
+  let pic = new Image()
+  pic.onload = e => {
+    demo.addUniforms({
+      u_Pic: {
+        type: 'sampler2D',
+        value: pic,
+        textureSize: {
+          w: pic.width,
+          h: pic.height
+        }
+      },
+      u_PicSize: {
+        type: '2fv',
+        value: [
+          pic.width,
+          pic.height
+        ]
+      }
+    })
+    console.log(pic.width, pic.height)
+    demo.start()
+  }
+  pic.src = '../assets/test.png'
 
   function setGaussianImage () {
     let kernel = ShaderTool.gaussianBlur(guiInfo.radius, guiInfo.sigma)
     let pixelList = []
     let width = guiInfo.radius * 2 + 1
     kernel.slice(0, width).forEach(pixel => {
-      pixelList.push(pixel * 255, 0, 0, 255)
+      pixelList.push(pixel, 0, 0, 255)
     })
     let img = new ImageData(
       new Uint8ClampedArray(new Uint8Array(pixelList), width, 1),
@@ -59,44 +84,6 @@
     // demo.updateUniform('u_BlurSize', guiInfo.radius)
   }
 
-  /**
-   * 更新当前视频帧到纹理
-   */
-  function updateVideo () {
-    demo.updateUniform('u_Pic', video)
-  }
-
-  // 视频加载差不多的时候进行第一次播放
-  function playVideo () {
-    video.play()
-    demo.addUniforms({
-      u_Pic: {
-        type: 'sampler2D',
-        value: video,
-        textureSize: {
-          w: video.videoWidth,
-          h: video.videoHeight
-        }
-      },
-      u_PicSize: {
-        type: '2fv',
-        value: [
-          video.videoWidth,
-          video.videoHeight
-        ]
-      }
-    })
-    console.log(video.videoWidth, video.videoHeight)
-    demo.start(updateVideo)
-    video.removeEventListener('canplaythrough', playVideo) // 为啥移除？因为canplaythrough在重复播放的时候会触发！
-  }
-
-  // 监听视频缓冲是否可以播放了
-  video.addEventListener('canplaythrough', playVideo)
-  video.muted = true // 静音
-  video.loop = true // 循环
-  video.preload = 'auto' // 开启预加载
-  video.src = '../assets/test.mp4' // 写入视频地址
   // gui
   //   .add(guiInfo, 'radius', 1, 15, 1)
   //   .name('模糊半径')

@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>44. Filter Test: video + blur</title>
+  <title>45. Filter Test: video + blur (2)</title>
   <style>
     html,
     body {
@@ -50,7 +50,7 @@
     uniform sampler2D u_Pic; // 图片
     uniform vec2 u_PicSize; // 图片尺寸
     uniform sampler2D u_Gaussian; // 高斯模糊内核
-    const float u_BlurSize = 7.0; // 模糊半径
+    const float u_BlurSize = 3.0; // 模糊半径
     varying vec3 v_Pos; // 插值点坐标
     float aspect = u_Screen.x / u_Screen.y; // 宽高比
     float TWO_PI = 2.0 * PI;
@@ -59,17 +59,19 @@
 
     // 高斯模糊
     vec4 blur (vec2 p) {
-      vec4 xVal = vec4(0.0);
-      vec4 yVal = vec4(0.0);
-      for (float i = -u_BlurSize; i <= u_BlurSize; i++) {
+      vec3 xVal = vec3(0.0);
+      vec3 yVal = vec3(0.0);
+      for (float i = -u_BlurSize; i <= u_BlurSize; i += 1.0) {
         vec2 offset = i * pixel;
         vec4 xColor = texture2D(u_Pic, p + vec2(offset.x, 0.0));
         vec4 yColor = texture2D(u_Pic, p + vec2(0.0, offset.y));
-        float blurFactor = texture2D(u_Gaussian, vec2((i + u_BlurSize) / blurWidth, 0.5)).r;
-        xVal += xColor * blurFactor;
-        yVal += yColor * blurFactor;
+        vec4 blurPixel = texture2D(u_Gaussian, vec2((i + u_BlurSize + 0.5) / blurWidth, 0.5));
+        float blurFactor = blurPixel.r;
+        xVal += xColor.rgb * blurFactor;
+        yVal += yColor.rgb * blurFactor;
       }
-      return xVal + yVal;
+      return vec4(xVal + yVal, 1.0);
+      // return texture2D(u_Pic, p);
     }
 
     void main() {

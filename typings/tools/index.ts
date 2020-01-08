@@ -26,7 +26,8 @@
         total += item
       }
     }
-    normal = origin.map(item => item / total)
+    normal = origin.map(item => item / total * 255)
+    console.log(normal)
 
     return normal
   }
