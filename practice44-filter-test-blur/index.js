@@ -29,7 +29,8 @@
     });
     var video = document.getElementById('v');
     function setGaussianImage() {
-        var kernel = ShaderTool.gaussianBlur(guiInfo.radius, guiInfo.sigma);
+        var gaussianInfo = ShaderTool.gaussianBlur(guiInfo.radius, guiInfo.sigma);
+        var kernel = gaussianInfo.kernel;
         var pixelList = [];
         var width = guiInfo.radius * 2 + 1;
         kernel.slice(0, width).forEach(function (pixel) {

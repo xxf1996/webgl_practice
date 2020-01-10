@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>45. Filter Test: video + blur (2)</title>
+  <title>45. Filter Test: blur (2)</title>
   <style>
     html,
     body {
@@ -50,12 +50,18 @@
     uniform sampler2D u_Pic; // 图片
     uniform vec2 u_PicSize; // 图片尺寸
     uniform sampler2D u_Gaussian; // 高斯模糊内核
-    const float u_BlurSize = 3.0; // 模糊半径
+    uniform float u_GaussianTotal; // 高斯模糊内核因子总和
+    const float u_BlurSize = 15.0; // 模糊半径
     varying vec3 v_Pos; // 插值点坐标
     float aspect = u_Screen.x / u_Screen.y; // 宽高比
     float TWO_PI = 2.0 * PI;
     vec2 pixel = vec2(1.0) / u_Screen; // 得到屏幕的一个像素的宽高
     float blurWidth = 2.0 * u_BlurSize + 1.0;
+
+    // 算出设备坐标在纹理坐标中的位置（假设两个坐标系的原点相同）
+    vec2 getPosInPic (vec2 p) {
+      return p / pixel / u_PicSize;
+    }
 
     // 高斯模糊
     vec4 blur (vec2 p) {
@@ -63,10 +69,10 @@
       vec3 yVal = vec3(0.0);
       for (float i = -u_BlurSize; i <= u_BlurSize; i += 1.0) {
         vec2 offset = i * pixel;
-        vec4 xColor = texture2D(u_Pic, p + vec2(offset.x, 0.0));
-        vec4 yColor = texture2D(u_Pic, p + vec2(0.0, offset.y));
-        vec4 blurPixel = texture2D(u_Gaussian, vec2((i + u_BlurSize + 0.5) / blurWidth, 0.5));
-        float blurFactor = blurPixel.r;
+        vec4 xColor = texture2D(u_Pic, p + getPosInPic(vec2(offset.x, 0.0)));
+        vec4 yColor = texture2D(u_Pic, p + getPosInPic(vec2(0.0, offset.y)));
+        vec4 blurPixel = texture2D(u_Gaussian, vec2((i + u_BlurSize + 0.5) / blurWidth, 0.0));
+        float blurFactor = blurPixel.r * 255.0 / u_GaussianTotal * 0.5;
         xVal += xColor.rgb * blurFactor;
         yVal += yColor.rgb * blurFactor;
       }
@@ -74,11 +80,18 @@
       // return texture2D(u_Pic, p);
     }
 
+    vec4 showGaussion (vec2 p) {
+      float ix = floor(p.x * blurWidth) + 0.5;
+      float k = (step(0.9, p.y) * texture2D(u_Gaussian, vec2(ix / blurWidth, 0.0))).r;
+      return vec4(k, k, k, 1.0);
+    }
+
     void main() {
       vec2 pos = (v_Pos.xy + vec2(1.0, 1.0)) * 0.5; // 将坐标转换到[0, 1]
-      vec2 picPos = pos / pixel / u_PicSize; // 算出当前像素在图片中的位置（图片的实际尺寸）
+      vec2 picPos = getPosInPic(pos); // 算出当前像素在图片中的位置（图片的实际尺寸）
       vec4 color = vec4(0.0, 0.0, 0.0, 1.0);
-      gl_FragColor =  (picPos.x > 1.0 || picPos.y > 1.0) ? color : blur(picPos); // 片元颜色
+      gl_FragColor = (picPos.x > 1.0 || picPos.y > 1.0) ? color : blur(picPos); // 片元颜色
+      gl_FragColor += showGaussion(pos);
     }
   </script>
   <script src="./index.js"></script>

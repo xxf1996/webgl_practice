@@ -1,9 +1,10 @@
 (() => {
   let guiInfo = {
-    radius: 3,
-    sigma: 1.5
+    radius: 15,
+    sigma: 2.5
   }
   let gaussianImage = null
+  let gaussianTotal = 0
   let gui = new dat.GUI()
   let cur = Date.now()
 
@@ -26,6 +27,10 @@
           w: 64,
           h: 1
         }
+      },
+      u_GaussianTotal: {
+        type: '1f',
+        value: gaussianTotal
       }
     }
   })
@@ -57,14 +62,15 @@
   pic.src = '../assets/test.png'
 
   function setGaussianImage () {
-    let kernel = ShaderTool.gaussianBlur(guiInfo.radius, guiInfo.sigma)
+    let gaussianInfo = ShaderTool.gaussianBlur(guiInfo.radius, guiInfo.sigma)
+    let kernel = gaussianInfo.kernel
     let pixelList = []
     let width = guiInfo.radius * 2 + 1
     kernel.slice(0, width).forEach(pixel => {
       pixelList.push(pixel, 0, 0, 255)
     })
     let img = new ImageData(
-      new Uint8ClampedArray(new Uint8Array(pixelList), width, 1),
+      new Uint8ClampedArray(pixelList),
       width,
       1
     )
@@ -75,12 +81,14 @@
     // gaussianImage.height = 1
     // gaussianImage.width = width
     gaussianImage = img
+    gaussianTotal = gaussianInfo.total
     console.log(gaussianImage)
   }
 
   function changeGaussian () {
     setGaussianImage()
     demo.updateUniform('u_Gaussian', gaussianImage)
+    demo.updateUniform('u_GaussianTotal', gaussianTotal)
     // demo.updateUniform('u_BlurSize', guiInfo.radius)
   }
 

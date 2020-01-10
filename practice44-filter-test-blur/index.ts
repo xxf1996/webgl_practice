@@ -32,7 +32,8 @@
   let video = <HTMLVideoElement>document.getElementById('v')
 
   function setGaussianImage () {
-    let kernel = ShaderTool.gaussianBlur(guiInfo.radius, guiInfo.sigma)
+    let gaussianInfo = ShaderTool.gaussianBlur(guiInfo.radius, guiInfo.sigma)
+    let kernel = gaussianInfo.kernel
     let pixelList = []
     let width = guiInfo.radius * 2 + 1
     kernel.slice(0, width).forEach(pixel => {

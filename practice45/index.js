@@ -1,9 +1,10 @@
 (function () {
     var guiInfo = {
-        radius: 3,
-        sigma: 1.5
+        radius: 15,
+        sigma: 2.5
     };
     var gaussianImage = null;
+    var gaussianTotal = 0;
     var gui = new dat.GUI();
     var cur = Date.now();
     setGaussianImage();
@@ -24,6 +25,10 @@
                     w: 64,
                     h: 1
                 }
+            },
+            u_GaussianTotal: {
+                type: '1f',
+                value: gaussianTotal
             }
         }
     });
@@ -51,19 +56,22 @@
     };
     pic.src = '../assets/test.png';
     function setGaussianImage() {
-        var kernel = ShaderTool.gaussianBlur(guiInfo.radius, guiInfo.sigma);
+        var gaussianInfo = ShaderTool.gaussianBlur(guiInfo.radius, guiInfo.sigma);
+        var kernel = gaussianInfo.kernel;
         var pixelList = [];
         var width = guiInfo.radius * 2 + 1;
         kernel.slice(0, width).forEach(function (pixel) {
             pixelList.push(pixel, 0, 0, 255);
         });
-        var img = new ImageData(new Uint8ClampedArray(new Uint8Array(pixelList), width, 1), width, 1);
+        var img = new ImageData(new Uint8ClampedArray(pixelList), width, 1);
         gaussianImage = img;
+        gaussianTotal = gaussianInfo.total;
         console.log(gaussianImage);
     }
     function changeGaussian() {
         setGaussianImage();
         demo.updateUniform('u_Gaussian', gaussianImage);
+        demo.updateUniform('u_GaussianTotal', gaussianTotal);
     }
     gui
         .add(guiInfo, 'sigma', 1, 5, 0.01)

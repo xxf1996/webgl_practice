@@ -10,16 +10,22 @@ var ShaderTool = (function (global) {
         var origin = [];
         var normal = [];
         var total = 0;
-        for (var y = r; y >= -r; y--) {
-            for (var x = -r; x <= r; x++) {
-                var item = Math.exp(-(x * x + y * y) / (sigma * sigma * 2)) / (2 * Math.PI * sigma * sigma);
-                origin.push(item);
-                total += item;
-            }
+        for (var x = -r; x <= r; x++) {
+            var item = Math.exp(-x * x / (sigma * sigma * 2)) / (Math.sqrt(2 * Math.PI) * sigma);
+            origin.push(item);
+            total += item;
         }
-        normal = origin.map(function (item) { return item / total * 255; });
-        console.log(normal);
-        return normal;
+        var intTotal = 0;
+        normal = origin.map(function (item) {
+            var i = Math.round(item / total * 255);
+            intTotal += i;
+            return i;
+        });
+        console.log(normal, intTotal);
+        return {
+            kernel: normal,
+            total: intTotal
+        };
     }
     return {
         randomRange: randomRange,
