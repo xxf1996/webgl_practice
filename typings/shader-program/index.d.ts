@@ -41,7 +41,8 @@ interface AttributeBufferDef {
  * 着色器属性对应的数组缓冲信息
  */
 interface AttributeArrayBuffer {
-  size: number,
+  name?: string, // 属性名称
+  size: number, // 一个数据的字节大小
   normalize: boolean,
   stride: number,
   offset: number,
@@ -49,6 +50,21 @@ interface AttributeArrayBuffer {
   pos: LocationType,
   array: Float32Array,
   buffer: WebGLBuffer
+}
+
+/**
+ * 着色器绘制的回调函数
+ */
+interface ProgramDrawFunction {
+  (ctx: WebGLRenderingContext): void
+}
+
+/**
+ * 帧缓冲对应的纹理信息
+ */
+interface FrameTextureInfo {
+  texture: WebGLTexture, // 纹理对象
+  id: number // 纹理通道
 }
 
 /**
@@ -89,7 +105,10 @@ interface ProgramConfig {
   updateTime?: boolean,
   needScreen?: boolean,
   needMouse?: boolean,
-  loop?: boolean
+  loop?: boolean,
+  initArea?: boolean,
+  fragName?: string,
+  vertexName?: string
 }
 
 /**

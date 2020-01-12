@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>46. FBO test</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+  <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <script src="../typings/shader-program/index.js"></script>
+  <script src="../typings/tools/index.js"></script>
+</head>
+<body>
+  <canvas id="test" tabindex="1"></canvas>
+  <script type="shader-source" id="frameVertex">
+    precision mediump float; // 中等精度
+    attribute vec3 a_Pos; // 点坐标
+    attribute vec4 a_Color; // 点颜色
+    varying vec3 v_Pos; // 插值点坐标
+    varying vec4 v_Color;
+
+    void main() {
+      v_Pos = a_Pos;
+      v_Color = a_Color;
+      gl_Position = vec4(a_Pos * vec3(1.0, -1.0, 1.0), 1.0); // 点坐标（屏幕坐标的y坐标轴是由下往上的）
+      gl_PointSize = 1.0;
+    }
+  </script>
+  <script type="shader-source" id="frameFragment">
+    precision mediump float; // 中等精度
+    varying vec4 v_Color;
+
+    void main() {
+      gl_FragColor = v_Color;
+    }
+  </script>
+  <script type="shader-source" id="vertex">
+    precision mediump float; // 中等精度
+    attribute vec3 a_Pos; // 点坐标
+    varying vec3 v_Pos;
+
+    void main() {
+      vec4 info = texture2D(u_Info, a_Pos.xy);
+      vec4 pos = vec4(info.xy, 0.0, 1.0);
+      
+      gl_Position = vec4(a_Pos, 1.0); // 点坐标
+      v_Pos = a_Pos;
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    precision mediump float; // 中等精度
+    varying vec3 v_Pos;
+    uniform sampler2D u_Info;
+
+    void main() {
+      gl_FragColor = texture2D(u_Info, v_Pos.xy);
+    }
+  </script>
+  <script src="./index.js"></script>
+</body>
+</html>

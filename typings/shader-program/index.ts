@@ -6,12 +6,15 @@
  * tsconfig中includes/files包括的文件范围就是能够使用ts声明的范围，若不包括则无法使用；默认没有的话就是项目中所有的文件。
  */
 
+let textureID = 0; // 纹理通道
+
 ;var Program = (function (global: Global) {
   let winH: number = global.innerHeight // 窗口高度
   let winW: number = global.innerWidth // 窗口宽度
   let aspect: number = winW / winH // 屏幕宽高比
-  let textureBuffer = null; // 一个着色器共用一个纹理缓冲对象，避免占用过多GPU内存
-  let textureID = 0; // 纹理通道
+  let frameBuffer: WebGLFramebuffer = null; // 帧缓冲对象
+  let frameTexture: WebGLTexture = null; // 帧缓冲对应的纹理对象
+  let frameTextureID: number = 0;
 
   // 顶点等数组配置信息
   const arrayInfo: AttributeBufferDef = {
@@ -73,8 +76,8 @@
         ctx.uniform1i(info.pos, info.textureID) // 将纹理通道连接到取样器
         ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGBA, ctx.RGBA, ctx.UNSIGNED_BYTE, <HTMLImageElement|ImageData>info.value)
         // ctx.texImage2D(ctx.TEXTURE_2D, 0, ctx.RGB, info.textureSize.w, info.textureSize.h, 0, ctx.RGB, ctx.UNSIGNED_BYTE, <Uint8Array>info.value)
-        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE)
-        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE)
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_S, ctx.CLAMP_TO_EDGE) // 指定纹理S轴方向大小适应方式
+        ctx.texParameteri(ctx.TEXTURE_2D, ctx.TEXTURE_WRAP_T, ctx.CLAMP_TO_EDGE) // 指定纹理T轴方向大小适应方式
         ctx.texParameterf(ctx.TEXTURE_2D, ctx.TEXTURE_MIN_FILTER, ctx.LINEAR) // 指定纹理缩小取样算法
         ctx.texParameterf(ctx.TEXTURE_2D, ctx.TEXTURE_MAG_FILTER, ctx.LINEAR) // 指定纹理放大取样算法
         break
@@ -130,19 +133,23 @@
    * 初始化着色器和着色器程序，用于试验着色器效果
    */
   class ShdaerProgram {
-    private _CANVAS: HTMLCanvasElement
-    private _CONTEXT: WebGLRenderingContext
-    private pos: ProgramLocation
-    private buffers: Array<AttributeArrayBuffer>
-    private _UNIFORM: AttributeConfig
-    private _ATTR: AttributeConfig
-    private _updateTime: boolean
-    private _needScreen: boolean
-    private _needMouse: boolean
-    private _LOOP: boolean
-    private _LOOPFUNC: Function
-    private info: ProgramInfo
-    private program: WebGLProgram
+    private _CANVAS: HTMLCanvasElement // canvas元素
+    private _CONTEXT: WebGLRenderingContext // webgl上下文
+    private pos: ProgramLocation // 着色器属性地址
+    private buffers: Array<AttributeArrayBuffer> // 数组缓冲
+    private _UNIFORM: AttributeConfig // uniform属性配置信息
+    private _ATTR: AttributeConfig // attribute属性配置信息
+    private _updateTime: boolean // 是否更新时间值到着色器内
+    private _needScreen: boolean // 着色器是否需要屏幕尺寸信息
+    private _needMouse: boolean // 着色是否需要鼠标位置信息
+    private _LOOP: boolean // 是否开启循环绘制
+    private _InitArea: boolean // 是否绘制一个屏幕大小的矩形；这样仅作片元着色器的试验；
+    private _LOOPFUNC: Function // 循环绘制时的回调函数
+    private vertexName: string // 顶点着色器id
+    private fragName: string // 片元着色器id
+    private drawFunction: ProgramDrawFunction // 绘制的回调函数
+    private info: ProgramInfo // 几个固定的数组缓冲信息
+    private program: WebGLProgram // 当前着色器程序对象
 
     constructor (opts: ProgramConfig = {}) {
       let canvas: HTMLCanvasElement = <HTMLCanvasElement>document.getElementById(opts.name || 'test')
@@ -158,12 +165,19 @@
       this._needScreen = opts.needScreen || false // 是否需要窗口分辨率信息
       this._needMouse = opts.needMouse || false // 是否需要鼠标位置信息
       this._LOOP = opts.loop !== undefined ? opts.loop : true // 是否开启requestAnimationFrame
+      this._InitArea = opts.initArea !== undefined ? opts.initArea : true
       this._LOOPFUNC = noop
+      this.fragName = opts.fragName || 'fragment'
+      this.vertexName = opts.vertexName || 'vertex'
       this.info = {
-        vertices: []
+        vertices: [],
+        colors: [],
+        normals: []
       }
       this.initProgram()
-      this.initArea()
+      if (this._InitArea) {
+        this.initArea()
+      }
       this.initConfig()
       this.initVar()
 
@@ -177,8 +191,8 @@
       const gl = this._CONTEXT
       const vertexShader = gl.createShader(gl.VERTEX_SHADER) // 创建着色器
       const fragShader = gl.createShader(gl.FRAGMENT_SHADER)
-      const vertexSource = document.getElementById('vertex').innerHTML // 获取着色器源码
-      const fragSource = document.getElementById('fragment').innerHTML
+      const vertexSource = document.getElementById(this.vertexName).innerHTML // 获取着色器源码
+      const fragSource = document.getElementById(this.fragName).innerHTML
       this.program = gl.createProgram() // 创建着色器程序
       gl.shaderSource(vertexShader, vertexSource) // 为着色器写入源码
       gl.shaderSource(fragShader, fragSource)
@@ -246,11 +260,12 @@
         let attributeInfo = gl.getActiveAttrib(this.program, i) // 获取attribute属性信息
         let attributePos = gl.getAttribLocation(this.program, attributeInfo.name) // 获取attribute属性地址
         this.pos[attributeInfo.name] = attributePos
-        if (attributeInfo.name === 'a_Pos') {
+        if (Object.keys(arrayInfo).indexOf(attributeInfo.name) !== -1) { // 检测预定义的attribute属性
           let bufferInfo = arrayInfo[attributeInfo.name]
           let buffer = gl.createBuffer()
           this.buffers.push(
             {
+              name: attributeInfo.name,
               type: bufferInfo.bufferType,
               pos: attributePos,
               size: bufferInfo.size,
@@ -351,6 +366,25 @@
     }
 
     /**
+     * 更新VAO对象的值
+     * @param name VAO对象对应的属性名
+     * @param value 属性值
+     */
+    updateArrayInfo (name: string, value: number[]):void {
+      let info:AttributeArrayBuffer = null
+      for (let buffer of this.buffers) {
+        if (buffer.name === name) {
+          info = buffer
+          break
+        }
+      }
+
+      if (info) {
+        info.array = new Float32Array(value)
+      }
+    }
+
+    /**
      * 更新uniform属性值
      * @param name uniform属性名称
      * @param value 属性值
@@ -369,13 +403,93 @@
     }
 
     /**
+     * 使用帧缓冲
+     * @param width 帧的宽度（像素）
+     * @param height 帧的高度
+     */
+    useFrameBuffer (width: number, height: number): void {
+      const gl = this._CONTEXT
+      gl.useProgram(this.program)
+      if (!frameBuffer) {
+        frameBuffer = gl.createFramebuffer()
+      }
+
+      if (!frameTexture) {
+        frameTexture = gl.createTexture()
+        frameTextureID = textureID
+        textureID++
+      }
+
+      gl.activeTexture(gl.TEXTURE0 + frameTextureID) // 激活对应的纹理
+      gl.bindTexture(gl.TEXTURE_2D, frameTexture)
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null) // 先
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE) // 指定纹理S轴方向大小适应方式
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE) // 指定纹理T轴方向大小适应方式
+      gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR) // 指定纹理缩小取样算法
+      gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR) // 指定纹理放大取样算法
+      gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer) // 使用帧缓冲
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, frameTexture, 0) // 将纹理绑定到帧缓冲上
+    }
+
+    /**
+     * 关闭帧缓冲
+     */
+    closeFrameBuffer (): void {
+      const gl = this._CONTEXT
+      gl.useProgram(this.program)
+      gl.bindFramebuffer(gl.FRAMEBUFFER, null) // 关闭帧缓冲
+    }
+
+    /**
+     * 获取帧缓冲对应的纹理对象
+     */
+    getFrameTexture (): FrameTextureInfo {
+      return {
+        texture: frameTexture,
+        id: frameTextureID
+      }
+    }
+
+    /**
+     * 使用帧缓冲得到的纹理
+     * @param name 取样器属性名称
+     * @param info 纹理信息
+     */
+    useFrameTexture (name: string, info: FrameTextureInfo): void {
+      const gl = this._CONTEXT
+      gl.useProgram(this.program)
+      let pos = gl.getUniformLocation(this.program, name)
+      gl.activeTexture(gl.TEXTURE0 + info.id) // 首先激活对应的纹理通道
+      gl.bindTexture(gl.TEXTURE_2D, info.texture) // 然后将纹理缓冲绑定到通道
+      gl.uniform1i(pos, info.id) // 将纹理通道连接到取样器
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE) // 指定纹理S轴方向大小适应方式
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE) // 指定纹理T轴方向大小适应方式
+      gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR) // 指定纹理缩小取样算法
+      gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR) // 指定纹理放大取样算法
+    }
+
+    /**
+     * 设置帧绘制回调函数
+     * @param func 帧绘制的回调函数
+     */
+    setDrawFunction (func: ProgramDrawFunction): void {
+      this.drawFunction = func
+    }
+    
+
+    /**
      * 绘制图形
      */
     draw (): void {
       const gl = this._CONTEXT
+      gl.useProgram(this.program)
       this.updateBuffer()
       // gl.drawElements(gl.TRIANGLES, this.info.indices.length, gl.UNSIGNED_SHORT, 0)
-      gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.info.vertices.length / 3)
+      if (this.drawFunction) {
+        this.drawFunction(gl)
+      } else {
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.info.vertices.length / 3)
+      }
     }
 
     /**
@@ -393,7 +507,7 @@
         if (this._LOOPFUNC) {
           this._LOOPFUNC()
         }
-        gl.clear(gl.COLOR_BUFFER_BIT) // 清除画布
+        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT) // 清除画布
         this.draw()
         if (isLoop) requestAnimationFrame(loopFunc)
       }

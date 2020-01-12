@@ -9,13 +9,15 @@ var __assign = (this && this.__assign) || function () {
     };
     return __assign.apply(this, arguments);
 };
+var textureID = 0;
 ;
 var Program = (function (global) {
     var winH = global.innerHeight;
     var winW = global.innerWidth;
     var aspect = winW / winH;
-    var textureBuffer = null;
-    var textureID = 0;
+    var frameBuffer = null;
+    var frameTexture = null;
+    var frameTextureID = 0;
     var arrayInfo = {
         'a_Pos': {
             size: 3,
@@ -123,12 +125,19 @@ var Program = (function (global) {
             this._needScreen = opts.needScreen || false;
             this._needMouse = opts.needMouse || false;
             this._LOOP = opts.loop !== undefined ? opts.loop : true;
+            this._InitArea = opts.initArea !== undefined ? opts.initArea : true;
             this._LOOPFUNC = noop;
+            this.fragName = opts.fragName || 'fragment';
+            this.vertexName = opts.vertexName || 'vertex';
             this.info = {
-                vertices: []
+                vertices: [],
+                colors: [],
+                normals: []
             };
             this.initProgram();
-            this.initArea();
+            if (this._InitArea) {
+                this.initArea();
+            }
             this.initConfig();
             this.initVar();
             return this;
@@ -137,8 +146,8 @@ var Program = (function (global) {
             var gl = this._CONTEXT;
             var vertexShader = gl.createShader(gl.VERTEX_SHADER);
             var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
-            var vertexSource = document.getElementById('vertex').innerHTML;
-            var fragSource = document.getElementById('fragment').innerHTML;
+            var vertexSource = document.getElementById(this.vertexName).innerHTML;
+            var fragSource = document.getElementById(this.fragName).innerHTML;
             this.program = gl.createProgram();
             gl.shaderSource(vertexShader, vertexSource);
             gl.shaderSource(fragShader, fragSource);
@@ -185,10 +194,11 @@ var Program = (function (global) {
                 var attributeInfo = gl.getActiveAttrib(this.program, i);
                 var attributePos = gl.getAttribLocation(this.program, attributeInfo.name);
                 this.pos[attributeInfo.name] = attributePos;
-                if (attributeInfo.name === 'a_Pos') {
+                if (Object.keys(arrayInfo).indexOf(attributeInfo.name) !== -1) {
                     var bufferInfo = arrayInfo[attributeInfo.name];
                     var buffer = gl.createBuffer();
                     this.buffers.push({
+                        name: attributeInfo.name,
                         type: bufferInfo.bufferType,
                         pos: attributePos,
                         size: bufferInfo.size,
@@ -266,18 +276,84 @@ var Program = (function (global) {
                 gl.vertexAttribPointer(item.pos, item.size, gl.FLOAT, item.normalize, item.stride, item.offset);
             });
         };
+        ShdaerProgram.prototype.updateArrayInfo = function (name, value) {
+            var info = null;
+            for (var _i = 0, _a = this.buffers; _i < _a.length; _i++) {
+                var buffer = _a[_i];
+                if (buffer.name === name) {
+                    info = buffer;
+                    break;
+                }
+            }
+            if (info) {
+                info.array = new Float32Array(value);
+            }
+        };
         ShdaerProgram.prototype.updateUniform = function (name, value) {
             var gl = this._CONTEXT;
             gl.useProgram(this.program);
             var info = this._UNIFORM[name];
             if (info.type) {
-                setUniform(gl, __assign(__assign({ pos: this.pos[name] }, info), { value: value }));
+                setUniform(gl, __assign({ pos: this.pos[name] }, info, { value: value }));
             }
+        };
+        ShdaerProgram.prototype.useFrameBuffer = function (width, height) {
+            var gl = this._CONTEXT;
+            gl.useProgram(this.program);
+            if (!frameBuffer) {
+                frameBuffer = gl.createFramebuffer();
+            }
+            if (!frameTexture) {
+                frameTexture = gl.createTexture();
+                frameTextureID = textureID;
+                textureID++;
+            }
+            gl.activeTexture(gl.TEXTURE0 + frameTextureID);
+            gl.bindTexture(gl.TEXTURE_2D, frameTexture);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+            gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, frameTexture, 0);
+        };
+        ShdaerProgram.prototype.closeFrameBuffer = function () {
+            var gl = this._CONTEXT;
+            gl.useProgram(this.program);
+            gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+        };
+        ShdaerProgram.prototype.getFrameTexture = function () {
+            return {
+                texture: frameTexture,
+                id: frameTextureID
+            };
+        };
+        ShdaerProgram.prototype.useFrameTexture = function (name, info) {
+            var gl = this._CONTEXT;
+            gl.useProgram(this.program);
+            var pos = gl.getUniformLocation(this.program, name);
+            gl.activeTexture(gl.TEXTURE0 + info.id);
+            gl.bindTexture(gl.TEXTURE_2D, info.texture);
+            gl.uniform1i(pos, info.id);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+            gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        };
+        ShdaerProgram.prototype.setDrawFunction = function (func) {
+            this.drawFunction = func;
         };
         ShdaerProgram.prototype.draw = function () {
             var gl = this._CONTEXT;
+            gl.useProgram(this.program);
             this.updateBuffer();
-            gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.info.vertices.length / 3);
+            if (this.drawFunction) {
+                this.drawFunction(gl);
+            }
+            else {
+                gl.drawArrays(gl.TRIANGLE_STRIP, 0, this.info.vertices.length / 3);
+            }
         };
         ShdaerProgram.prototype.loop = function () {
             var _this = this;
@@ -291,7 +367,7 @@ var Program = (function (global) {
                 if (_this._LOOPFUNC) {
                     _this._LOOPFUNC();
                 }
-                gl.clear(gl.COLOR_BUFFER_BIT);
+                gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
                 _this.draw();
                 if (isLoop)
                     requestAnimationFrame(loopFunc);
