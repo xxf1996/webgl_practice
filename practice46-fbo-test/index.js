@@ -1,12 +1,21 @@
 (function () {
     var winW = window.innerWidth;
     var winH = window.innerHeight;
+    var half = {
+        w: Math.floor(winW / 2),
+        h: Math.floor(winH / 2)
+    };
     var pixel = {
         x: 1 / winW,
         y: 1 / winH
     };
-    var pointNum = 1000;
-    var vertices = [];
+    var padding = {
+        x: 5,
+        y: 5
+    };
+    var pointNum = 10;
+    var textureVertices = [];
+    var indices = [];
     var info = [];
     var frame = new Program({
         initArea: false,
@@ -20,32 +29,35 @@
     });
     function initData() {
         for (var i = 0; i < pointNum; i++) {
-            var xIdx = i % winW;
-            var yIdx = Math.floor(i / winW);
+            var xIdx = i % (winW - padding.x * 2) + padding.x;
+            var yIdx = Math.floor(i / (winW - padding.x * 2)) + padding.y;
             var xPos = Math.random();
             var yPos = Math.random();
             var size = Math.round(Math.random() * 20 + 5);
-            vertices.push(xIdx * pixel.x, yIdx * pixel.y, 1);
+            var tx = xIdx / (winW - 1) * 2 - 1;
+            var ty = yIdx / (winH - 1) * 2 - 1;
+            textureVertices.push(tx, ty, 1);
+            indices.push((xIdx + 0.5) / (winW - 1), (yIdx + 0.5) / (winH - 1), 1);
             info.push(xPos, yPos, size / 100, 1);
         }
-        console.log(vertices, info);
+        console.log(textureVertices, indices, info);
     }
     initData();
-    frame.updateArrayInfo('a_Pos', vertices);
+    frame.updateArrayInfo('a_Pos', textureVertices);
     frame.updateArrayInfo('a_Color', info);
     frame.setDrawFunction(function (gl) {
         console.log('frame');
-        gl.drawArrays(gl.POINTS, 0, vertices.length / 3);
+        gl.drawArrays(gl.POINTS, 0, textureVertices.length / 3);
     });
     frame.useFrameBuffer(winW, winH);
     frame.start();
     var frameInfo = frame.getFrameTexture();
     frame.closeFrameBuffer();
-    demo.updateArrayInfo('a_Pos', vertices);
+    demo.updateArrayInfo('a_Pos', indices);
     demo.useFrameTexture('u_Info', frameInfo);
     demo.setDrawFunction(function (gl) {
         console.log('normal');
-        gl.drawArrays(gl.POINTS, 0, vertices.length / 3);
+        gl.drawArrays(gl.POINTS, 0, indices.length / 3);
     });
     demo.start();
 })();
