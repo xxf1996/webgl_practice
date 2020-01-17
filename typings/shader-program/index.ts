@@ -422,13 +422,14 @@ let textureID = 0; // 纹理通道
 
       gl.activeTexture(gl.TEXTURE0 + frameTextureID) // 激活对应的纹理
       gl.bindTexture(gl.TEXTURE_2D, frameTexture)
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null) // 先
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, width, height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null) // 先初始化纹理数据
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE) // 指定纹理S轴方向大小适应方式
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE) // 指定纹理T轴方向大小适应方式
       gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR) // 指定纹理缩小取样算法
       gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR) // 指定纹理放大取样算法
       gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer) // 使用帧缓冲
-      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, frameTexture, 0) // 将纹理绑定到帧缓冲上
+      gl.viewport(0, 0, width, height) // 帧窗口大小
+      gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, frameTexture, 0) // 将纹理绑定到帧缓冲中的颜色缓冲上
     }
 
     /**
@@ -438,6 +439,7 @@ let textureID = 0; // 纹理通道
       const gl = this._CONTEXT
       gl.useProgram(this.program)
       gl.bindFramebuffer(gl.FRAMEBUFFER, null) // 关闭帧缓冲
+      gl.viewport(0, 0, this._CANVAS.width, this._CANVAS.height) // 恢复窗口大小
     }
 
     /**

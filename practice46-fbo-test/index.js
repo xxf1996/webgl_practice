@@ -1,6 +1,8 @@
 (function () {
     var winW = window.innerWidth;
     var winH = window.innerHeight;
+    var frameWidth = 300;
+    var frameHeight = 200;
     var half = {
         w: Math.floor(winW / 2),
         h: Math.floor(winH / 2)
@@ -29,15 +31,15 @@
     });
     function initData() {
         for (var i = 0; i < pointNum; i++) {
-            var xIdx = i % (winW - padding.x * 2) + padding.x;
-            var yIdx = Math.floor(i / (winW - padding.x * 2)) + padding.y;
+            var xIdx = i % (frameWidth - padding.x * 2) + padding.x;
+            var yIdx = Math.floor(i / (frameWidth - padding.x * 2)) + padding.y;
             var xPos = Math.random();
             var yPos = Math.random();
-            var size = Math.round(Math.random() * 20 + 5);
-            var tx = xIdx / (winW - 1) * 2 - 1;
-            var ty = yIdx / (winH - 1) * 2 - 1;
+            var size = Math.round(Math.random() * 10 + 2);
+            var tx = xIdx / (frameWidth - 1) * 2 - 1;
+            var ty = yIdx / (frameHeight - 1) * 2 - 1;
             textureVertices.push(tx, ty, 1);
-            indices.push((xIdx + 0.5) / (winW - 1), (yIdx + 0.5) / (winH - 1), 1);
+            indices.push((xIdx + 0.5) / (frameWidth - 1), (yIdx + 0.5) / (frameHeight - 1), 1);
             info.push(xPos, yPos, size / 100, 1);
         }
         console.log(textureVertices, indices, info);
@@ -49,7 +51,7 @@
         console.log('frame');
         gl.drawArrays(gl.POINTS, 0, textureVertices.length / 3);
     });
-    frame.useFrameBuffer(winW, winH);
+    frame.useFrameBuffer(frameWidth, frameHeight);
     frame.start();
     var frameInfo = frame.getFrameTexture();
     frame.closeFrameBuffer();

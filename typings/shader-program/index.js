@@ -316,12 +316,14 @@ var Program = (function (global) {
             gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
             gl.texParameterf(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
             gl.bindFramebuffer(gl.FRAMEBUFFER, frameBuffer);
+            gl.viewport(0, 0, width, height);
             gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, frameTexture, 0);
         };
         ShdaerProgram.prototype.closeFrameBuffer = function () {
             var gl = this._CONTEXT;
             gl.useProgram(this.program);
             gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+            gl.viewport(0, 0, this._CANVAS.width, this._CANVAS.height);
         };
         ShdaerProgram.prototype.getFrameTexture = function () {
             return {
