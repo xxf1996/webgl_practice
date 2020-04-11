@@ -294,7 +294,7 @@ var Program = (function (global) {
             gl.useProgram(this.program);
             var info = this._UNIFORM[name];
             if (info.type) {
-                setUniform(gl, __assign({ pos: this.pos[name] }, info, { value: value }));
+                setUniform(gl, __assign(__assign({ pos: this.pos[name] }, info), { value: value }));
             }
         };
         ShdaerProgram.prototype.useFrameBuffer = function (width, height) {

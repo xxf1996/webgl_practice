@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>47. pattern challenge：gear</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+  <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <script src="../typings/shader-program/index.js"></script>
+  <script src="../typings/tools/index.js"></script>
+</head>
+<body>
+  <canvas id="test" tabindex="1"></canvas>
+  <script type="shader-source" id="vertex">
+    precision mediump float; // 中等精度
+    attribute vec3 a_Pos;
+    varying vec3 v_Pos;
+
+    void main () {
+      v_Pos = a_Pos * vec3(1.0, -1.0, 1.0);
+      gl_Position = vec4(v_Pos, 1.0);
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    precision mediump float; // 中等精度
+    #define PI 3.14159265358979
+    uniform vec2 u_Screen;
+    uniform vec2 u_Mouse; // 当前鼠标坐标
+    uniform float u_Time;
+    varying vec3 v_Pos;
+    const float width = 0.05;
+    const float gearWidth = 0.02;
+    const float inner = 0.55;
+    const float smallR = 0.2;
+    float aspect = u_Screen.x / u_Screen.y;
+    float innerLength = 2.0 * PI * inner;
+    float smallLength = 2.0 * PI * smallR;
+
+    float gear (in vec2 p, in float gearNum) {
+      float r = length(p);
+      float angle = atan(p.y, p.x);
+      float gearR = cos(gearNum * angle) * width;
+      float outterR = inner + width;
+      float innerR = inner + (abs(gearR) > gearWidth ? sign(gearR) * gearWidth : gearR);
+      float k = smoothstep(innerR - 0.01, innerR, r) - smoothstep(outterR - 0.01, outterR, r);
+      float curLen = mod(u_Time / 1000.0 * innerLength, innerLength);
+      float gearAngle = curLen / inner;
+      vec2 smallOrigin = (inner - smallR) * vec2(cos(gearAngle), sin(gearAngle));
+      vec2 smallPos = p - smallOrigin;
+      float smallAngle = curLen / smallR;
+      float r2 = length(smallPos);
+      float angle2 = atan(smallPos.y, smallPos.x) + smallAngle;
+      float smallGear = cos(gearNum * angle2 * smallR / inner) * width;
+      float smallInnerR = smallR - width;
+      float smallOutterR = smallR + (abs(smallGear) > gearWidth ? sign(smallGear) * gearWidth : smallGear);
+      float smallK = smoothstep(smallInnerR - 0.01, smallInnerR, r2) - smoothstep(smallOutterR - 0.01, smallOutterR, r2);
+
+      return k + smallK * 0.5;
+    }
+
+    void main () {
+      vec2 pos = v_Pos.xy * vec2(aspect, 1.0);
+      vec3 color = vec3(1.0, 0.0, 0.0);
+      gl_FragColor = vec4(color * gear(pos, 30.0), 1.0);
+    }
+  </script>
+  <script src="./index.js"></script>
+</body>
+</html>
