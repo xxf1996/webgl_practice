@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>48. polar test</title>
+  <style>
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+    }
+    canvas {
+      display: block;
+    }
+  </style>
+  <script src="https://cdn.bootcss.com/gl-matrix/2.8.1/gl-matrix-min.js"></script>
+  <script src="../typings/shader-program/index.js"></script>
+</head>
+<body>
+  <canvas id="test" tabindex="1"></canvas>
+  <script type="shader-source" id="vertex">
+    precision mediump float; // 中等精度
+    attribute vec3 a_Pos;
+    varying vec3 v_Pos;
+
+    void main () {
+      v_Pos = a_Pos * vec3(1.0, -1.0, 1.0);
+      gl_Position = vec4(v_Pos, 1.0);
+    }
+  </script>
+  <script type="shader-source" id="fragment">
+    precision mediump float; // 中等精度
+    #define PI 3.14159265358979
+    uniform vec2 u_Screen;
+    varying vec3 v_Pos;
+    float aspect = u_Screen.x / u_Screen.y;
+    float lineWidth = 0.03;
+
+    float polar_old (in float angle, in float curR, in float target) {
+      // float halfWidth = 0.5 * lineWidth * sqrt(1.0 + (pow(1.0 / aspect, 2.0) - 1.0) * pow(cos(angle), 2.0)); // 纠正竖直方向和水平方向同样距离对应屏幕的表现不一致的问题（因为屏幕x坐标被放大了）
+      float halfWidth = lineWidth * 0.5;
+      float outterR = target * (1.0 + halfWidth);
+      float innerR = target * (1.0 - halfWidth);
+
+      return step(innerR, curR) - step(outterR, curR);
+    }
+
+    float polar (vec2 cur, vec2 target) {
+      float halfWidth = lineWidth * 0.5;
+      return 1.0 - step(halfWidth, distance(cur, target)); // 放弃吧，直接用着色器绘制带宽度的曲线是不可能的，只能通过三角形或直线来模拟！
+    }
+
+    float drawPolar (in vec2 p) {
+      // float r = length(p);
+      float angle = atan(p.y, p.x);
+      float targetR = 0.5 * sin(angle);
+      vec2 target = vec2(cos(angle), sin(angle)) * targetR;
+
+      return polar(p, target);
+    }
+
+    void main () {
+      vec2 pos = v_Pos.xy * vec2(aspect, 1.0);
+      vec3 color = vec3(1.0, 0.0, 0.0);
+      gl_FragColor = vec4(color * drawPolar(pos), 1.0);
+    }
+  </script>
+  <script src="./index.js"></script>
+</body>
+</html>

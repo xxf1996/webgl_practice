@@ -87,7 +87,7 @@
         len2 = length(-0.5 - p);
       } else { // 2, 4
         len1 = length(vec2(-0.5, 0.5) - p);
-        len1 = length(vec2(0.5, -0.5) - p);
+        len2 = length(vec2(0.5, -0.5) - p);
       }
 
       return smoothstep(0.44, 0.45, len1) - smoothstep(0.54, 0.55, len1)
